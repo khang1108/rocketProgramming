@@ -1,0 +1,5 @@
+﻿  Server.cpp
+C:\Users\ASUS\Desktop\Pham Trong\Mạng máy tính\Project Networking\mainProject\rocketProgramming\Server\Server\Server.cpp(92,34): warning C4566: character represented by universal-character-name '\u1EA1' cannot be represented in the current code page (1252)
+  (compiling source file '/Server.cpp')
+  
+  Server.vcxproj -> C:\Users\ASUS\Desktop\Pham Trong\Mạng máy tính\Project Networking\mainProject\rocketProgramming\Server\x64\Debug\Server.exe

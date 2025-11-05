@@ -42,3 +42,30 @@
 
 # build 
 build/
+
+# Bỏ qua toàn bộ thư mục cài đặt và cache của Visual Studio
+.vs/
+Server/.vs/
+
+# Bỏ qua các tệp cache IntelliSense và browse database
+*.ipch
+*.db
+*.db-shm
+*.db-wal
+
+# Bỏ qua các thư mục build
+[Dd]ebug/
+[Rr]elease/
+x64/
+bin/
+obj/
+
+# Bỏ qua các tệp người dùng và tệp tạm
+*.suo
+*.user
+
+# Bỏ qua các tệp thực thi và thư viện
+*.exe
+*.dll
+*.obj
+*.lib
