@@ -1,10 +1,97 @@
 # rocketProgramming
-rocketProgramming is a Realtime Streaming Video application in which a server sends a video to a client in an end system. All of things in this project are built in C++ and Socket STL.
+rocketProgramming is a Realtime Streaming Video application in which a server sends a video to a client in an end system. All of things in this project are built in C++ and Socket STL. This application use two **Protocols** *TCP & UDP* to communicate and send packets to other. 
 
+# Folder Structure
+```bash
+rocketProgramming/
+├── README.md
+├── CMakeLists.txt (root - optional)
+├── docs/
+│   └── report.pdf
+│
+├── server/                          # ← SERVER EXECUTABLE
+│   ├── CMakeLists.txt
+│   ├── include/
+│   │   ├── patterns/
+│   │   │   ├── Strategy.hpp        # Encoding strategies
+│   │   │   ├── Builder.hpp         # RTP packet builder
+│   │   │   └── Singleton.hpp       # Logger, Config
+│   │   ├── network/
+│   │   │   ├── Socket.hpp          # Socket wrapper
+│   │   │   ├── RTSPServer.hpp      # RTSP protocol handler
+│   │   │   └── ServerWorker.hpp    # Per-client handler
+│   │   ├── rtp/
+│   │   │   ├── RTPPacket.hpp       # RTP packet structure
+│   │   │   ├── RTPPacketBuilder.hpp # Builder pattern
+│   │   │   └── EncodingStrategy.hpp # SD/HD strategies
+│   │   ├── video/
+│   │   │   └── VideoStream.hpp     # MJPEG file reader
+│   │   └── utils/
+│   │       ├── Logger.hpp          # Singleton logger
+│   │       ├── Config.hpp          # Server config
+│   │       └── Timer.hpp           # Timing utilities
+│   ├── src/
+│   │   ├── patterns/
+│   │   ├── network/
+│   │   ├── rtp/
+│   │   ├── video/
+│   │   ├── utils/
+│   │   └── main.cpp                # Server entry point
+│   ├── config/
+│   │   └── server.conf
+│   └── videos/
+│       ├── movie.Mjpeg
+│       ├── hd720p.Mjpeg
+│       └── hd1080p.Mjpeg
+│
+└── client/                          # ← CLIENT EXECUTABLE
+    ├── CMakeLists.txt
+    ├── include/
+    │   ├── patterns/
+    │   │   ├── State.hpp           # State pattern base
+    │   │   ├── Command.hpp         # RTSP commands
+    │   │   ├── Observer.hpp        # Buffer observers
+    │   │   └── Singleton.hpp       # Logger, Config
+    │   ├── network/
+    │   │   ├── Socket.hpp          # Socket wrapper
+    │   │   └── RTSPClient.hpp      # RTSP protocol
+    │   ├── rtp/
+    │   │   ├── RTPPacket.hpp       # RTP packet structure
+    │   │   ├── RTPReceiver.hpp     # Receive RTP packets
+    │   │   └── FrameReassembler.hpp # Fragment reassembly
+    │   ├── buffer/
+    │   │   ├── FrameBuffer.hpp     # Producer-consumer buffer
+    │   │   └── BufferObserver.hpp  # Concrete observers
+    │   ├── state/
+    │   │   ├── ClientState.hpp     # State pattern base
+    │   │   └── ConcreteStates.hpp  # Init, Ready, Playing
+    │   ├── ui/
+    │   │   ├── ClientUI.hpp        # User interface
+    │   │   └── FrameDisplay.hpp    # Video display
+    │   └── utils/
+    │       ├── Logger.hpp          # Singleton logger
+    │       ├── Config.hpp          # Client config
+    │       └── Metrics.hpp         # Performance metrics
+    ├── src/
+    │   ├── patterns/
+    │   ├── network/
+    │   ├── rtp/
+    │   ├── buffer/
+    │   ├── state/
+    │   ├── ui/
+    │   ├── utils/
+    │   └── main.cpp                # Client entry point
+    ├── config/
+    │   └── client.conf
+    └── tests/
+        ├── test_rtsp.cpp
+        ├── test_reassembly.cpp
+        └── test_buffer.cpp
+```
 # Architecture
 ```bash
 ┌─────────────────────────────────────────────────────────────┐
-│                    DEPLOYMENT DIAGRAM                        │
+│                    DEPLOYMENT DIAGRAM                       │
 └─────────────────────────────────────────────────────────────┘
 
 Machine 1 (Server):                  Machine 2 (Client):
@@ -31,7 +118,7 @@ Machine 1 (Server):                  Machine 2 (Client):
 │          │           │            │          ▲           │
 │          ▼           │            │          │           │
 │  ┌────────────────┐  │            │  ┌────────────────┐  │
-│  │ RTPPacketBuilder│ │            │  │ FrameReassembler│ │
+│  │ RTPPacketBuilder│ │            │  │FrameReassembler│  │
 │  │ (Builder)       │ │            │  │                │  │
 │  └────────────────┘  │            │  └────────────────┘  │
 │          │           │            │          ▲           │
