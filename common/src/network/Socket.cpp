@@ -216,3 +216,213 @@ void Socket::connect(const std::string &host, int port)
         connected_ = true;
     }
 }
+int Socket::send(const uint8_t *data, size_t length)
+{
+    if(type_ != SocketType::TCP) {
+        throw SocketException("send called on UDP socket");
+    }
+    if(!connected_) {
+        throw SocketException("socket not connected");
+    }
+
+    if(length <= 0 || data == nullptr) {
+        throw SocketException("invalid length");
+    }
+
+    int totalSent = 0;
+    while(totalSent < length) {
+        int bytes = ::send(sockfd_, 
+            (const char*)(data + totalSent,) 
+            length - totalSent, 
+            0);
+
+        if(bytes == SOCKET_ERROR) {
+            #ifdef _WIN32
+                int error = WSAGetLastError();
+                if(error == WSAETIMEDOUT || error == WSAEWOULDBLOCK) {
+                    throw SocketTimeout("send() timed out");
+                }
+                throw SocketException("send() failed: " + std::to_string(error));
+                if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                    throw SocketTimeout("send() timed out");
+                }
+                throw SocketException("send() failed: " + std::string(strerror(errno)));
+            #endif
+        }
+
+        if(bytes == 0) {
+            throw SocketException("send() failed: connection closed by peer");
+        }
+
+        totalSent += bytes;
+    }
+
+    return totalSent;
+}
+int Socket::receive(uint8_t *buffer, size_t bufferSize)
+{
+    if(type_ != SocketType::TCP){
+        throw SocketException("receive called on UDP socket");
+    }
+    if(!connected_){
+        throw SocketException("socket not connected");
+    }
+
+    if(bufferSize <= 0 || buffer == nullptr){
+        throw SocketException("invalid buffer size");
+    }
+
+    int bytesReceived = ::recv(sockfd_, (char*)buffer, bufferSize, 0);
+
+    if(bytesReceived == SOCKET_ERROR){
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            if(error == WSAETIMEDOUT || error == WSAEWOULDBLOCK) {
+                throw SocketTimeout("receive() timed out");
+            }
+            throw SocketException("receive() failed: " + std::to_string(error));
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                throw SocketTimeout("receive() timed out");
+            }
+        #endif
+        throw SocketException("receive() failed: " + std::string(strerror(errno)));
+    }
+
+    return bytesReceived;
+}
+int Socket::sendTo(const uint8_t *data, size_t length,
+                    const std::string &destAddress, int destPort)
+{
+    if(type_ != SocketType::UDP){
+        throw SocketException("sendTo called on TCP socket");
+    }
+    if(!bound_){
+        throw SocketException("socket not bound");
+    }
+    if(length <= 0 || data == nullptr){
+        throw SocketException("invalid length");
+    }
+
+    if(destPort < 0 || destPort > 65535){
+        throw SocketException("invalid destination port");
+    }
+
+    sockaddr_in destAddr;
+    memset(&destAddr, 0, sizeof(destAddr));
+    destAddr.sin_family = AF_INET;
+    destAddr.sin_port = htons(destPort);
+
+    //* Convert destination address from string to binary
+    if(inet_pton(AF_INET, destAddress.c_str(), &destAddr.sin_addr) == 0){
+        throw SocketException("invalid destination address");
+    }
+
+    int bytesSent = ::sendto(sockfd_, 
+                            (const char*)(data + totalSent), 
+                            length - totalSent, 
+                            0,
+                            (struct sockaddr*)&destAddr, 
+                            sizeof(destAddr));
+
+    if(bytesSent == SOCKET_ERROR){
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            throw SocketException("sendTo() failed: " + to_string(error));
+        #else
+            throw SocketException("sendTo() failed: " + std::string(strerror(errno)));
+        #endif
+    }
+    return bytesSent;
+}
+int Socket::receiveFrom(uint8_t *buffer, size_t bufferSize,
+                        std::string &sourceAddress, int &sourcePort)
+{
+    if(type_ != SocketType::UDP){
+        throw SocketException("receiveFrom called on TCP socket");
+    }
+    if(!bound_){
+        throw SocketException("socket not bound");
+    }
+    if(bufferSize <= 0 || buffer == nullptr){
+        throw SocketException("invalid buffer size");
+    }
+
+    sockaddr_in sourceAddr;
+    memset(&sourceAddr, 0, sizeof(sourceAddr));
+    socklen_t sourceAddrLen = sizeof(sourceAddr);
+
+    int bytesReceived = ::recvfrom(sockfd_, 
+                                (char*)buffer, 
+                                bufferSize, 
+                                0,
+                                (struct sockaddr*)&sourceAddr, 
+                                &sourceAddrLen);
+
+    if(bytesReceived == SOCKET_ERROR){
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            if(error == WSAETIMEDOUT || error == WSAEWOULDBLOCK) {
+                throw SocketTimeout("receiveFrom() timed out");
+            }
+            throw SocketException("receiveFrom() failed: " + std::to_string(error));
+        #else
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                throw SocketTimeout("receiveFrom() timed out");
+            }
+            throw SocketException("receiveFrom() failed: " + std::string(strerror(errno)));
+        #endif
+    }
+
+    char ipStr[INET_ADDRSTRLEN];
+    if(inet_ntop(AF_INET, &sourceAddr.sin_addr, ipStr, sizeof(ipStr)) == nullptr){
+        throw SocketException("receiveFrom() failed: " + std::string(strerror(errno)));
+    }
+    sourceAddress = std::string(ipStr);
+    sourcePort = ntohs(sourceAddr.sin_port);
+
+    return bytesReceived;
+}
+void Socket::setTimeout(int milliseconds)
+{
+    if(milliseconds < 0){
+        throw SocketException("invalid timeout");
+    }
+
+    #ifdef _WIN32
+        DWORD timeout = milliseconds;
+        if(setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) == SOCKET_ERROR) {
+            throw SocketException("setTimeout() failed: " + std::string(WSAGetLastErrorString(WSAGetLastError())));
+        }
+    #else
+        struct timeval tv;
+        tv.tv_sec = milliseconds / 1000;
+        tv.tv_usec = (milliseconds % 1000) * 1000;
+        if(setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) == SOCKET_ERROR) {
+            throw SocketException("setTimeout() failed: " + std::string(strerror(errno)));
+        }
+    #endif
+}
+void Socket::setReuseAddress(bool reuse)
+{
+    int optVal = reuse ? 1 : 0;
+    if(::setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR,
+                    (const char*)&optVal, sizeof(optVal)) == SOCKET_ERROR) {
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            throw SocketException("setReuseAddress() failed: " + std::to_string(error));
+        #else
+            throw SocketException("setReuseAddress() failed: " + std::string(strerror(errno)));
+        #endif
+    }
+}
+void Socket::setNonBlocking(bool nonBlocking)
+{
+    int flags = fcntl(sockfd_, F_GETFL, 0);
+    if(flags == -1){
+        throw SocketException("setNonBlocking() failed: " + std::string(strerror(errno)));
+    }
+    flags = nonBlocking ? flags | O_NONBLOCK : flags & ~O_NONBLOCK;
+    if(fcntl(sockfd_, F_SETFL, flags) == -1){
+        throw SocketException("setNonBlocking() failed: " + std::string(strerror(errno)));
+    }
+}
