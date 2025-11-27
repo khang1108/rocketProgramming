@@ -1,5 +1,5 @@
-#ifndef RTPPACKETBUILDER_HPP
-#define RTPPACKETBUILDER_HPP
+#ifndef SERVER_RTP_RTPPACKETBUILDER_HPP
+#define SERVER_RTP_RTPPACKETBUILDER_HPP
 
 #include "RTPPacket.hpp"
 #include "../patterns/Builder.hpp"

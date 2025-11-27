@@ -487,8 +487,3 @@ server/include/
 2. `Logger.cpp`, `Config.cpp` - Implement singletons
 3. `ServerWorker.cpp` - Use EncodingContext để encode & send
 4. `RTPReceiver.cpp` - Use RTPPacket để decode & reassemble
-
----
-
-**Tác giả**: Generated for rocketProgramming project
-**Ngày**: November 27, 2025

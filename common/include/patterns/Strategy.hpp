@@ -1,5 +1,5 @@
-#ifndef STRATEGY_HPP
-#define STRATEGY_HPP
+#ifndef SERVER_PATTERNS_STRATEGY_HPP
+#define SERVER_PATTERNS_STRATEGY_HPP
 
 /**
  * @file Strategy.hpp
@@ -51,6 +51,13 @@
  * @endcode
  */
 
+/**
+ * @class Strategy
+ * @brief Abstract base class for Strategy pattern implementation
+ *
+ * @tparam InputType Type of input data for the strategy
+ * @tparam OutputType Type of result produced by the strategy
+ */
 template <typename InputType, typename OutputType>
 class Strategy
 {

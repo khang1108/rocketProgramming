@@ -1,5 +1,5 @@
-#ifndef RTPPacket_SERVER_HPP
-#define RTPPacket_SERVER_HPP
+#ifndef SERVER_RTP_RTPPACKET_HPP
+#define SERVER_RTP_RTPPACKET_HPP
 
 #include <array>
 #include <vector>
@@ -77,8 +77,8 @@ public:
      */
     RTPPacket()
         : version_(RTP_VERSION), padding_(0), extension_(0), cc_(0),
-        marker_(0), payloadType_(MJPEG_TYPE), sequenceNumber_(0),
-        timestamp_(0), ssrc_(0)
+          marker_(0), payloadType_(MJPEG_TYPE), sequenceNumber_(0),
+          timestamp_(0), ssrc_(0)
     {
         header_.fill(0);
     }

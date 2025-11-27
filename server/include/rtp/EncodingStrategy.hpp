@@ -1,5 +1,5 @@
-#ifndef ENCODINGSTRATEGY_HPP
-#define ENCODINGSTRATEGY_HPP
+#ifndef SERVER_RTP_ENCODINGSTRATEGY_HPP
+#define SERVER_RTP_ENCODINGSTRATEGY_HPP
 
 #include "RTPPacket.hpp"
 #include "RTPPacketBuilder.hpp"
@@ -154,13 +154,13 @@ public:
 
             // Build packet for this fragment
             RTPPacket packet = RTPPacketBuilder()
-                                .setPayloadType(RTPPacket::MJPEG_TYPE)
-                                .setSequenceNumber(currentSeq++)
-                                .setTimestamp(frame.timestamp) // SAME timestamp for all fragments
-                                .setSSRC(frame.ssrc)
-                                .setMarker(isLast ? 1 : 0) // Marker = 1 only for last fragment
-                                .setPayload(&frame.data[offset], chunkSize)
-                                .build();
+                                   .setPayloadType(RTPPacket::MJPEG_TYPE)
+                                   .setSequenceNumber(currentSeq++)
+                                   .setTimestamp(frame.timestamp) // SAME timestamp for all fragments
+                                   .setSSRC(frame.ssrc)
+                                   .setMarker(isLast ? 1 : 0) // Marker = 1 only for last fragment
+                                   .setPayload(&frame.data[offset], chunkSize)
+                                   .build();
 
             packets.push_back(std::move(packet));
             offset += chunkSize;
@@ -214,9 +214,9 @@ public:
      */
     EncodingContext()
         : Context<Frame, std::vector<RTPPacket>>(),
-        sdStrategy_(std::make_unique<SDEncodingStrategy>()),
-        hdStrategy_(std::make_unique<HDEncodingStrategy>()),
-        autoDetect_(true) {}
+          sdStrategy_(std::make_unique<SDEncodingStrategy>()),
+          hdStrategy_(std::make_unique<HDEncodingStrategy>()),
+          autoDetect_(true) {}
 
     /**
      * @brief Enable/disable auto strategy detection

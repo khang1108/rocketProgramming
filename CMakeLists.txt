@@ -73,6 +73,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Subdirectories
 # ==============================================================================
 
+# Build common library first (shared components)
+add_subdirectory(common)
+
 # Add client and server subdirectories
 add_subdirectory(client)
 add_subdirectory(server)

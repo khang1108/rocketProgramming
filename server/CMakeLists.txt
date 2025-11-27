@@ -52,6 +52,7 @@ target_include_directories(${SERVER_TARGET}
 
 target_link_libraries(${SERVER_TARGET}
     PRIVATE
+        common_lib
         Threads::Threads
 )
 

@@ -1,5 +1,5 @@
-#ifndef BUILDER_HPP
-#define BUILDER_HPP
+#ifndef SERVER_PATTERNS_BUILDER_HPP
+#define SERVER_PATTERNS_BUILDER_HPP
 
 /**
  * @file Builder.hpp
@@ -36,6 +36,12 @@
  * @endcode
  */
 
+/**
+ * @class Builder
+ * @brief Abstract base class for Builder pattern implementation
+ *
+ * @tparam T Type of object to build
+ */
 template <typename T>
 class Builder
 {
