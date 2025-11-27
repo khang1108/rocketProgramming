@@ -275,6 +275,7 @@ public:
      * @param address Local IP address ("0.0.0.0" for all interfaces, "127.0.0.1" for localhost)
      * @param port Local port number (must be 0-65535, ports < 1024 require root on Linux)
      * @throws SocketException if bind fails
+     * @throws SocketException if invalid port
      *
      * @details
      * Binds socket to specified local address/port. Required before:
