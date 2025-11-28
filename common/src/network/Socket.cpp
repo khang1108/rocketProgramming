@@ -1,17 +1,20 @@
 #include "Socket.hpp"
-#include <iostream>
-#include <cstring>
 
 #ifdef _WIN32
     #include <winsock2.h>
+    #include <ws2tcpip.h>
     #pragma comment(lib, "ws2_32.lib")
 #else
     #include <sys/socket.h>
+    #include <sys/types.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #include <netdb.h>
     #include <unistd.h>
     #include <fcntl.h>
-#endif 
+    #include <errno.h>
+    #include <cstring>
+#endif
 
 Socket::Socket(SocketType socketType)
 {
@@ -39,7 +42,7 @@ Socket::Socket(SocketType socketType)
 
     memset(&peerAddr_, 0, sizeof(peerAddr_));
 }
-~Socket()
+Socket::~Socket()
 {
     #ifdef _WIN32
         WSACleanup();
@@ -48,15 +51,37 @@ Socket::Socket(SocketType socketType)
         closesocket(sockfd_);
     }
 }
-Socket::Socket(Socket &&other) noexcept
+Socket::Socket(Socket &&other) noexcept :
+    sockfd_(other.sockfd_),
+    type_(other.type_),
+    connected_(other.connected_),
+    bound_(other.bound_),
+    hasPeerInfo_(other.hasPeerInfo_),
+    peerAddr_(other.peerAddr_)
 {
-    *this = std::move(other);
+    other.sockfd_ = INVALID_SOCKET;
+    other.connected_ = false;
+    other.bound_ = false;
+    other.hasPeerInfo_ = false;
+    memset(&other.peerAddr_, 0, sizeof(other.peerAddr_));
 }
-Socket::&operator=(Socket &&other) noexcept
+Socket& Socket::operator=(Socket &&other) noexcept
 {
     if(this != &other) {
         close();
-        Socket(other);
+        
+        sockfd_ = other.sockfd_;
+        type_ = other.type_;
+        connected_ = other.connected_;
+        bound_ = other.bound_;
+        hasPeerInfo_ = other.hasPeerInfo_;
+        peerAddr_ = other.peerAddr_;
+
+        other.sockfd_ = INVALID_SOCKET;
+        other.connected_ = false;
+        other.bound_ = false;
+        other.hasPeerInfo_ = false;
+        memset(&other.peerAddr_, 0, sizeof(other.peerAddr_));
     }
     return *this;
 }
@@ -75,7 +100,7 @@ void Socket::bind(const std::string &address, int port)
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(address.c_str());
 
-    if(bind(sockfd_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+    if(::bind(sockfd_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
         throw SocketException("bind failed");
     }
     bound_ = true;
@@ -212,9 +237,8 @@ void Socket::connect(const std::string &host, int port)
             }
             throw SocketException(errorMsg);
         #endif
-
-        connected_ = true;
     }
+    connected_ = true;
 }
 int Socket::send(const uint8_t *data, size_t length)
 {
@@ -232,7 +256,7 @@ int Socket::send(const uint8_t *data, size_t length)
     int totalSent = 0;
     while(totalSent < length) {
         int bytes = ::send(sockfd_, 
-            (const char*)(data + totalSent,) 
+            (const char*)(data + totalSent),
             length - totalSent, 
             0);
 
@@ -243,6 +267,7 @@ int Socket::send(const uint8_t *data, size_t length)
                     throw SocketTimeout("send() timed out");
                 }
                 throw SocketException("send() failed: " + std::to_string(error));
+            #else
                 if(errno == EAGAIN || errno == EWOULDBLOCK) {
                     throw SocketTimeout("send() timed out");
                 }
@@ -281,11 +306,12 @@ int Socket::receive(uint8_t *buffer, size_t bufferSize)
                 throw SocketTimeout("receive() timed out");
             }
             throw SocketException("receive() failed: " + std::to_string(error));
+        #else
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
                 throw SocketTimeout("receive() timed out");
             }
+            throw SocketException("receive() failed: " + std::string(strerror(errno)));
         #endif
-        throw SocketException("receive() failed: " + std::string(strerror(errno)));
     }
 
     return bytesReceived;
@@ -295,9 +321,6 @@ int Socket::sendTo(const uint8_t *data, size_t length,
 {
     if(type_ != SocketType::UDP){
         throw SocketException("sendTo called on TCP socket");
-    }
-    if(!bound_){
-        throw SocketException("socket not bound");
     }
     if(length <= 0 || data == nullptr){
         throw SocketException("invalid length");
@@ -318,8 +341,8 @@ int Socket::sendTo(const uint8_t *data, size_t length,
     }
 
     int bytesSent = ::sendto(sockfd_, 
-                            (const char*)(data + totalSent), 
-                            length - totalSent, 
+                            (const char*)data, 
+                            length, 
                             0,
                             (struct sockaddr*)&destAddr, 
                             sizeof(destAddr));
@@ -327,7 +350,7 @@ int Socket::sendTo(const uint8_t *data, size_t length,
     if(bytesSent == SOCKET_ERROR){
         #ifdef _WIN32
             int error = WSAGetLastError();
-            throw SocketException("sendTo() failed: " + to_string(error));
+            throw SocketException("sendTo() failed: " + std::to_string(error));
         #else
             throw SocketException("sendTo() failed: " + std::string(strerror(errno)));
         #endif
@@ -391,7 +414,8 @@ void Socket::setTimeout(int milliseconds)
     #ifdef _WIN32
         DWORD timeout = milliseconds;
         if(setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) == SOCKET_ERROR) {
-            throw SocketException("setTimeout() failed: " + std::string(WSAGetLastErrorString(WSAGetLastError())));
+            int error = WSAGetLastError();
+            throw SocketException("setTimeout() failed: " + std::to_string(error));
         }
     #else
         struct timeval tv;
@@ -417,12 +441,210 @@ void Socket::setReuseAddress(bool reuse)
 }
 void Socket::setNonBlocking(bool nonBlocking)
 {
-    int flags = fcntl(sockfd_, F_GETFL, 0);
-    if(flags == -1){
-        throw SocketException("setNonBlocking() failed: " + std::string(strerror(errno)));
+    #ifdef _WIN32
+        u_long mode = nonBlocking ? 1 : 0;
+        if(ioctlsocket(sockfd_, FIONBIO, &mode) == SOCKET_ERROR) {
+            throw SocketException("ioctlsocket(FIONBIO) failed: " + std::to_string(WSAGetLastError()));
+        }
+    #else
+        int flags = fcntl(sockfd_, F_GETFL, 0);
+        if(flags == -1){
+            throw SocketException("fcntl(F_GETFL) failed: " + std::string(strerror(errno)));
+        }
+
+        if(nonBlocking){
+            flags |= O_NONBLOCK;
+        } else {
+            flags &= ~O_NONBLOCK;
+        }
+
+        if(fcntl(sockfd_, F_SETFL, flags) == -1){
+            throw SocketException("fcntl(F_SETFL) failed: " + std::string(strerror(errno)));
+        }
+    #endif
+}
+void Socket::setNoDelay(bool nodelay)
+{
+    if(type_ != SocketType::TCP){
+        throw SocketException("setNoDelay called on UDP socket");
     }
-    flags = nonBlocking ? flags | O_NONBLOCK : flags & ~O_NONBLOCK;
-    if(fcntl(sockfd_, F_SETFL, flags) == -1){
-        throw SocketException("setNonBlocking() failed: " + std::string(strerror(errno)));
+
+    int optVal = nodelay ? 1 : 0;
+    if(::setsockopt(sockfd_, IPPROTO_TCP, TCP_NODELAY,
+                    (const char*)&optVal, sizeof(optVal)) == SOCKET_ERROR) {
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            throw SocketException("setNoDelay() failed: " + std::to_string(error));
+        #else
+            throw SocketException("setNoDelay() failed: " + std::string(strerror(errno)));
+        #endif
     }
 }
+void Socket::setBufferSize(int sendBufferSize, int receiveBufferSize)
+{
+    if(sendBufferSize > 0){
+        if(::setsockopt(sockfd_, SOL_SOCKET, SO_SNDBUF, 
+                        (const char*)&sendBufferSize, sizeof(sendBufferSize)) == SOCKET_ERROR) {
+            #ifdef _WIN32
+                int error = WSAGetLastError();
+                throw SocketException("setBufferSize(send) failed: " + std::to_string(error));
+            #else
+                throw SocketException("setBufferSize(send) failed: " + std::string(strerror(errno)));
+            #endif
+        }
+    }
+    if(receiveBufferSize > 0){
+        if(::setsockopt(sockfd_, SOL_SOCKET, SO_RCVBUF, 
+                        (const char*)&receiveBufferSize, sizeof(receiveBufferSize)) == SOCKET_ERROR) {
+            #ifdef _WIN32
+                int error = WSAGetLastError();
+                throw SocketException("setBufferSize(receive) failed: " + std::to_string(error));
+            #else
+                throw SocketException("setBufferSize(receive) failed: " + std::string(strerror(errno)));
+            #endif
+        }
+    }
+}
+int Socket::getLocalPort() const
+{
+    sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    socklen_t addrLen = sizeof(addr);
+
+    if(getsockname(sockfd_, (sockaddr*)&addr, &addrLen) == SOCKET_ERROR) {
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            throw SocketException("getLocalPort() failed: " + std::to_string(error));
+        #else
+            throw SocketException("getLocalPort() failed: " + std::string(strerror(errno)));
+        #endif
+    }
+    return ntohs(addr.sin_port);
+}
+std::string Socket::getLocalAddress() const
+{
+    sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    socklen_t addrLen = sizeof(addr);
+
+    if(getsockname(sockfd_, (sockaddr*)&addr, &addrLen) == SOCKET_ERROR) {
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            throw SocketException("getLocalAddress() failed: " + std::to_string(error));
+        #else
+            throw SocketException("getLocalAddress() failed: " + std::string(strerror(errno)));
+        #endif
+    }
+    
+    char ipStr[INET_ADDRSTRLEN];
+    if(inet_ntop(AF_INET, &addr.sin_addr, ipStr, sizeof(ipStr)) == nullptr){
+        throw SocketException("getLocalAddress() failed: " + std::string(strerror(errno)));
+    }
+    return std::string(ipStr);
+}
+std::string Socket::getPeerAddress() const
+{
+    if(type_ != SocketType::TCP){
+        throw SocketException("getPeerAddress called on UDP socket");
+    }
+    if(!hasPeerInfo_){
+        throw SocketException("socket not connected");
+    }
+
+    char ipStr[INET_ADDRSTRLEN];
+    if(inet_ntop(AF_INET, &peerAddr_.sin_addr, ipStr, sizeof(ipStr)) == nullptr){
+        throw SocketException("getPeerAddress() failed: " + std::string(strerror(errno)));
+    }
+    return std::string(ipStr);
+}
+int Socket::getPeerPort() const
+{
+    if(type_ != SocketType::TCP){
+        throw SocketException("getPeerPort called on UDP socket");
+    }
+    if(!hasPeerInfo_){
+        throw SocketException("socket not connected");
+    }
+
+    return ntohs(peerAddr_.sin_port);
+}
+void Socket::close()
+{
+    if(sockfd_ == INVALID_SOCKET) {
+        return;
+    }
+
+    #ifdef _WIN32
+        closesocket(sockfd_);
+    #else
+        ::close(sockfd_);
+    #endif
+
+    sockfd_ = INVALID_SOCKET;
+    connected_ = false;
+    bound_ = false;
+    hasPeerInfo_ = false;
+    memset(&peerAddr_, 0, sizeof(peerAddr_));
+}
+void Socket::shutdown(int how)
+{
+    if(type_ != SocketType::TCP){
+        throw SocketException("shutdown called on UDP socket");
+    }
+    if(!connected_){
+        throw SocketException("socket not connected");
+    }
+    if(how < 0 || how > 2){
+        throw SocketException("invalid shutdown mode");
+    }
+
+    if(::shutdown(sockfd_, how) == SOCKET_ERROR) {
+        #ifdef _WIN32
+            int error = WSAGetLastError();
+            throw SocketException("shutdown() failed: " + std::to_string(error));
+        #else
+            throw SocketException("shutdown() failed: " + std::string(strerror(errno)));
+        #endif
+    }
+}
+void Socket::initializeWinSock()
+{
+    #ifdef _WIN32
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+            throw SocketException("WSAStartup failed");
+        }
+    #endif
+}
+void Socket::cleanupWinSock()
+{
+    #ifdef _WIN32
+        WSACleanup();
+    #endif
+}
+std::string Socket::getLastErrorString()
+{
+    #ifdef _WIN32
+        int error = WSAGetLastError();
+        return "Error " + std::to_string(error);
+    #else
+        return std::string(strerror(errno));
+    #endif
+}
+bool Socket::isWouldBlock()
+{
+    #ifdef _WIN32
+        return WSAGetLastError() == WSAEWOULDBLOCK;
+    #else
+        return errno == EAGAIN || errno == EWOULDBLOCK;
+    #endif
+}
+Socket::Socket(SOCKET sockfd, SocketType type, const sockaddr_in &peerAddr)
+{
+    sockfd_ = sockfd;
+    type_ = type;
+    peerAddr_ = peerAddr;
+    hasPeerInfo_ = true;
+    connected_ = true;
+    bound_ = false;
+}false

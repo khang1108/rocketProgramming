@@ -540,7 +540,7 @@ public:
      * @endcode
      */
     int sendTo(const uint8_t *data, size_t length,
-               const std::string &destAddress, int destPort);
+            const std::string &destAddress, int destPort);
 
     /**
      * @brief Receive UDP datagram (blocking)
