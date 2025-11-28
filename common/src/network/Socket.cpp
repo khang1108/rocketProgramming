@@ -8,6 +8,7 @@
     #include <sys/socket.h>
     #include <sys/types.h>
     #include <netinet/in.h>
+    #include <netinet/tcp.h>  
     #include <arpa/inet.h>
     #include <netdb.h>
     #include <unistd.h>
@@ -44,20 +45,20 @@ Socket::Socket(SocketType socketType)
 }
 Socket::~Socket()
 {
+    if(sockfd_ != INVALID_SOCKET) {
+        close();    
+    }
     #ifdef _WIN32
         WSACleanup();
     #endif
-    if(sockfd_ != INVALID_SOCKET) {
-        closesocket(sockfd_);
-    }
 }
 Socket::Socket(Socket &&other) noexcept :
     sockfd_(other.sockfd_),
     type_(other.type_),
     connected_(other.connected_),
     bound_(other.bound_),
-    hasPeerInfo_(other.hasPeerInfo_),
-    peerAddr_(other.peerAddr_)
+    peerAddr_(other.peerAddr_),        
+    hasPeerInfo_(other.hasPeerInfo_)   
 {
     other.sockfd_ = INVALID_SOCKET;
     other.connected_ = false;
@@ -152,7 +153,7 @@ std::unique_ptr<Socket> Socket::accept()
         throw SocketException("accept failed");
     }
 
-    return std::make_unique<Socket>(clientSocket, type_, addr);
+    return std::unique_ptr<Socket>(new Socket(clientSocket, type_, addr));
 }
 void Socket::connect(const std::string &host, int port)
 {
@@ -253,7 +254,7 @@ int Socket::send(const uint8_t *data, size_t length)
         throw SocketException("invalid length");
     }
 
-    int totalSent = 0;
+    size_t totalSent = 0;
     while(totalSent < length) {
         int bytes = ::send(sockfd_, 
             (const char*)(data + totalSent),
