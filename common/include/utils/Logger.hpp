@@ -15,9 +15,14 @@
  */
 enum class LogLevel
 {
-    INFO = 1, ///< Thông tin chung (server started, client connected)
-    WARN = 2, ///< Cảnh báo (timeout, retry)
-    ERROR = 3 ///< Lỗi nghiêm trọng (connection failed, file not found)
+// Avoid accidental macro collision with a global DEBUG macro
+#ifdef DEBUG
+#undef DEBUG
+#endif
+    DEBUG = 0, ///< Chi tiết debug
+    INFO = 1,  ///< Thông tin chung (server started, client connected)
+    WARN = 2,  ///< Cảnh báo (timeout, retry)
+    ERROR = 3  ///< Lỗi nghiêm trọng (connection failed, file not found)
 };
 
 /**
@@ -163,5 +168,5 @@ public:
  * @param msg Message string
  */
 #define LOG_ERROR(msg) Logger::getInstance().log(LogLevel::ERROR, msg)
-
+#define LOG_DEBUG(msg) Logger::getInstance().log(LogLevel::DEBUG, msg)
 #endif

@@ -1,0 +1,15 @@
+[2025-11-28 10:38:43] [INFO ] This is an INFO message
+[2025-11-28 10:38:43] [WARN ] This is a WARNING message
+[2025-11-28 10:38:43] [ERROR] This is an ERROR message
+[2025-11-28 10:38:43] [INFO ] Loading file: video.mp4
+[2025-11-28 10:38:43] [ERROR] Failed to connect to server
+[2025-11-28 10:38:43] [WARN ] Thread 2 - Message 0
+[2025-11-28 10:38:43] [INFO ] Thread 1 - Message 0
+[2025-11-28 10:38:43] [WARN ] Thread 2 - Message 1
+[2025-11-28 10:38:43] [INFO ] Thread 1 - Message 1
+[2025-11-28 10:38:43] [WARN ] Thread 2 - Message 2
+[2025-11-28 10:38:43] [INFO ] Thread 1 - Message 2
+[2025-11-28 10:38:43] [INFO ] Thread 1 - Message 3
+[2025-11-28 10:38:43] [WARN ] Thread 2 - Message 3
+[2025-11-28 10:38:43] [INFO ] Thread 1 - Message 4
+[2025-11-28 10:38:43] [WARN ] Thread 2 - Message 4
