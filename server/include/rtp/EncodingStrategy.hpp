@@ -285,4 +285,4 @@ public:
     }
 };
 
-#endif // ENCODINGSTRATEGY_HPP
+#endif 
