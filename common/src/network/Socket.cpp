@@ -647,4 +647,4 @@ Socket::Socket(SOCKET sockfd, SocketType type, const sockaddr_in &peerAddr)
     hasPeerInfo_ = true;
     connected_ = true;
     bound_ = false;
-}false
+}
