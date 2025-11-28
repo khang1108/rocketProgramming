@@ -20,14 +20,7 @@
  * - Thread-safe reads
  * - Sử dụng SingletonWithInit vì cần truyền config file path
  *
- * @note File format:
- * @code
- * # Comment line
- * server_port=8554
- * video_file=movie.Mjpeg
- * max_clients=10
- * debug_mode=true
- * @endcode
+c
  *
  * @example
  * @code
