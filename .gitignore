@@ -69,3 +69,5 @@ obj/
 *.dll
 *.obj
 *.lib
+
+.vscode/
