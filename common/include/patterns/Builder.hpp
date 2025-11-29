@@ -1,68 +1,92 @@
-#ifndef SERVER_PATTERNS_BUILDER_HPP
-#define SERVER_PATTERNS_BUILDER_HPP
+#ifndef COMMON_PATTERNS_BUILDER_HPP
+#define COMMON_PATTERNS_BUILDER_HPP
 
 /**
  * @file Builder.hpp
- * @brief Builder Design Pattern - Interface cho việc xây dựng các đối tượng phức tạp
+ * @brief Builder Design Pattern - Interface for constructing complex objects
  *
  * @details
- * Builder pattern tách rời quá trình xây dựng (construction) của một đối tượng phức tạp
- * khỏi cách thức biểu diễn (representation) của nó, cho phép cùng một quá trình xây dựng
- * có thể tạo ra các biểu diễn khác nhau.
+ * Builder pattern separates object construction from its representation:
+ * - Fluent interface (method chaining)
+ * - Step-by-step object construction
+ * - Different representations from same build process
+ * - Validation before final object creation
  *
- * Trong dự án này, Builder pattern được sử dụng để:
- * - Xây dựng RTP packet với các trường header phức tạp
- * - Tách biệt logic xây dựng packet khỏi class RTPPacket
- * - Dễ dàng thêm/sửa đổi cách xây dựng packet mà không ảnh hưởng code hiện tại
+ * Use cases in this project:
+ * - RTPPacketBuilder: Construct RTP packets with proper validation
+ * - Future: MessageBuilder, ResponseBuilder, etc.
  *
  * @example
  * @code
- * // Concrete builder implementation
- * class RTPPacketBuilder : public Builder<RTPPacket> {
+ * class Product {
  * public:
- *     RTPPacketBuilder& setVersion(uint8_t v) { version_ = v; return *this; }
- *     RTPPacketBuilder& setPayloadType(uint8_t pt) { payloadType_ = pt; return *this; }
- *     RTPPacket build() override { return RTPPacket(...); }
+ *     int id;
+ *     std::string name;
+ * };
+ *
+ * class ProductBuilder : public Builder<Product> {
+ * private:
+ *     int id_ = 0;
+ *     std::string name_;
+ *
+ * public:
+ *     ProductBuilder& setId(int id) {
+ *         id_ = id;
+ *         return *this;
+ *     }
+ *
+ *     ProductBuilder& setName(const std::string& name) {
+ *         name_ = name;
+ *         return *this;
+ *     }
+ *
+ *     Product build() override {
+ *         Product product;
+ *         product.id = id_;
+ *         product.name = name_;
+ *         return product;
+ *     }
+ *
+ *     void reset() override {
+ *         id_ = 0;
+ *         name_.clear();
+ *     }
  * };
  *
  * // Usage
- * RTPPacket packet = RTPPacketBuilder()
- *     .setVersion(2)
- *     .setPayloadType(26)
- *     .setSequenceNumber(100)
- *     .setTimestamp(123456)
- *     .setPayload(data, size)
+ * Product p = ProductBuilder()
+ *     .setId(1)
+ *     .setName("Test")
  *     .build();
  * @endcode
  */
 
 /**
  * @class Builder
- * @brief Abstract base class for Builder pattern implementation
+ * @brief Abstract base class for Builder pattern
  *
- * @tparam T Type of object to build
+ * @tparam T Type of object being built
  */
 template <typename T>
-class Builder
-{
-public:
+class Builder {
+  public:
     /**
-     * @brief Virtual destructor cho polymorphism
+     * @brief Virtual destructor for polymorphism
      */
     virtual ~Builder() = default;
 
     /**
-     * @brief Xây dựng và trả về đối tượng cuối cùng
-     * @return Đối tượng đã được xây dựng hoàn chỉnh
-     * @note Pure virtual function - phải được implement bởi concrete builder
+     * @brief Build and return the final object
+     * @return Constructed object of type T
+     * @throws std::runtime_error if required fields not set
      */
     virtual T build() = 0;
 
     /**
-     * @brief Reset builder về trạng thái ban đầu
-     * @note Optional - có thể override nếu cần reuse builder
+     * @brief Reset builder to initial state
+     * @note Useful for reusing builder for multiple objects
      */
-    virtual void reset() {}
+    virtual void reset() = 0;
 };
 
-#endif // BUILDER_HPP
+#endif  // COMMON_PATTERNS_BUILDER_HPP

@@ -1,12 +1,12 @@
 #ifndef COMMON_UTILS_CONFIG_HPP
 #define COMMON_UTILS_CONFIG_HPP
 
-#include "patterns/Singleton.hpp"
-#include <string>
-#include <map>
 #include <fstream>
-#include <sstream>
+#include <map>
 #include <mutex>
+#include <sstream>
+#include <string>
+#include "patterns/Singleton.hpp"
 
 /**
  * @class Config
@@ -34,14 +34,13 @@ c
  * bool debug = config.getBool("debug_mode", false);
  * @endcode
  */
-class Config : public SingletonWithInit<Config>
-{
+class Config : public SingletonWithInit<Config> {
     friend class SingletonWithInit;
 
-private:
-    std::map<std::string, std::string> configMap_; ///< Key-value storage
-    std::string configFilePath_;                   ///< Path to config file
-    mutable std::mutex mutex_;                     ///< Thread synchronization
+  private:
+    std::map<std::string, std::string> configMap_;  ///< Key-value storage
+    std::string configFilePath_;                    ///< Path to config file
+    mutable std::mutex mutex_;                      ///< Thread synchronization
 
     /**
      * @brief Private constructor (Singleton pattern)
@@ -52,7 +51,7 @@ private:
      * - Falls back to hardcoded defaults if file not found
      * - Thread-safe initialization via SingletonWithInit
      */
-    Config(const std::string &configFile);
+    Config(const std::string& configFile);
 
     /**
      * @brief Load configuration from file
@@ -73,7 +72,7 @@ private:
      * video_file=movie.Mjpeg
      * @endcode
      */
-    bool loadFromFile(const std::string &filename);
+    bool loadFromFile(const std::string& filename);
 
     /**
      * @brief Set default configuration values
@@ -100,7 +99,7 @@ private:
      */
     void printConfig() const;
 
-public:
+  public:
     /**
      * @brief Initialize Config singleton with file path
      * @param configFile Path to configuration file (default: "config.conf")
@@ -122,10 +121,8 @@ public:
      *
      * @throws std::runtime_error if already initialized
      */
-    static void initialize(const std::string &configFile = "config.conf")
-    {
-        std::call_once(initFlag_, [&configFile]()
-                       { instance_.reset(new Config(configFile)); });
+    static void initialize(const std::string& configFile = "config.conf") {
+        std::call_once(initFlag_, [&configFile]() { instance_.reset(new Config(configFile)); });
     }
 
     // ==================== TYPE-SAFE GETTERS ====================
@@ -147,7 +144,7 @@ public:
      * int maxClients = config.getInt("max_clients"); // 0 if not found
      * @endcode
      */
-    int getInt(const std::string &key, int defaultValue = 0) const;
+    int getInt(const std::string& key, int defaultValue = 0) const;
 
     /**
      * @brief Get string value from config
@@ -161,8 +158,7 @@ public:
      * std::string logLevel = config.getString("log_level", "INFO");
      * @endcode
      */
-    std::string getString(const std::string &key,
-                          const std::string &defaultValue = "") const;
+    std::string getString(const std::string& key, const std::string& defaultValue = "") const;
 
     /**
      * @brief Get boolean value from config
@@ -181,7 +177,7 @@ public:
      * bool useSSL = config.getBool("use_ssl", true);
      * @endcode
      */
-    bool getBool(const std::string &key, bool defaultValue = false) const;
+    bool getBool(const std::string& key, bool defaultValue = false) const;
 
     /**
      * @brief Get double/float value from config
@@ -195,7 +191,7 @@ public:
      * double frameRate = config.getDouble("frame_rate", 24.0);
      * @endcode
      */
-    double getDouble(const std::string &key, double defaultValue = 0.0) const;
+    double getDouble(const std::string& key, double defaultValue = 0.0) const;
 
     // ==================== UTILITY METHODS ====================
 
@@ -213,7 +209,7 @@ public:
      * }
      * @endcode
      */
-    bool hasKey(const std::string &key) const;
+    bool hasKey(const std::string& key) const;
 
     /**
      * @brief Get config file path

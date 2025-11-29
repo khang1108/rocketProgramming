@@ -1,28 +1,27 @@
 #ifndef COMMON_UTILS_LOGGER_HPP
 #define COMMON_UTILS_LOGGER_HPP
 
-#include "patterns/Singleton.hpp"
-#include <string>
-#include <fstream>
-#include <mutex>
-#include <iostream>
 #include <ctime>
+#include <fstream>
+#include <iostream>
+#include <mutex>
 #include <sstream>
+#include <string>
+#include "patterns/Singleton.hpp"
 
 /**
  * @enum LogLevel
  * @brief Các mức độ logging
  */
-enum class LogLevel
-{
+enum class LogLevel {
 // Avoid accidental macro collision with a global DEBUG macro
 #ifdef DEBUG
 #undef DEBUG
 #endif
-    DEBUG = 0, ///< Chi tiết debug
-    INFO = 1,  ///< Thông tin chung (server started, client connected)
-    WARN = 2,  ///< Cảnh báo (timeout, retry)
-    ERROR = 3  ///< Lỗi nghiêm trọng (connection failed, file not found)
+    DEBUG = 0,  ///< Chi tiết debug
+    INFO = 1,   ///< Thông tin chung (server started, client connected)
+    WARN = 2,   ///< Cảnh báo (timeout, retry)
+    ERROR = 3   ///< Lỗi nghiêm trọng (connection failed, file not found)
 };
 
 /**
@@ -50,15 +49,14 @@ enum class LogLevel
  *
  * @note Implementation uses Meyer's Singleton (thread-safe since C++11)
  */
-class Logger : public Singleton<Logger>
-{
+class Logger : public Singleton<Logger> {
     friend class Singleton<Logger>;
 
-private:
-    std::ofstream logFile_; ///< Output file stream
-    LogLevel minLevel_;     ///< Minimum level to log
-    std::mutex mutex_;      ///< Thread synchronization
-    bool initialized_;      ///< Initialization flag
+  private:
+    std::ofstream logFile_;  ///< Output file stream
+    LogLevel minLevel_;      ///< Minimum level to log
+    std::mutex mutex_;       ///< Thread synchronization
+    bool initialized_;       ///< Initialization flag
 
     /**
      * @brief Private constructor (Singleton pattern)
@@ -78,7 +76,7 @@ private:
      */
     std::string levelToString(LogLevel level) const;
 
-public:
+  public:
     /**
      * @brief Initialize logger with file and level
      * @param logFile Path to log file (e.g., "server.log")
@@ -97,7 +95,7 @@ public:
      * Logger::getInstance().initialize("server.log", LogLevel::DEBUG);
      * @endcode
      */
-    void initialize(const std::string &logFile, LogLevel level = LogLevel::INFO);
+    void initialize(const std::string& logFile, LogLevel level = LogLevel::INFO);
 
     /**
      * @brief Log a message with specified level
@@ -116,7 +114,7 @@ public:
      * // Output: [2025-11-27 10:00:00] [INFO ] Server started
      * @endcode
      */
-    void log(LogLevel level, const std::string &message);
+    void log(LogLevel level, const std::string& message);
 
     /**
      * @brief Set minimum log level

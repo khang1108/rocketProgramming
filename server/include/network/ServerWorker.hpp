@@ -12,8 +12,5 @@
  * - Managing client session state
  * - Cleanup on disconnect
  */
-class ServerWorker
-{
-    
-};
+class ServerWorker {};
 #endif

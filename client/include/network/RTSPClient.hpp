@@ -1,10 +1,10 @@
 #ifndef CLIENT_NETWORK_RTSPCLIENT_HPP
 #define CLIENT_NETWORK_RTSPCLIENT_HPP
 
-#include "network/Socket.hpp"
-#include <string>
-#include <memory>
 #include <map>
+#include <memory>
+#include <string>
+#include "network/Socket.hpp"
 
 /**
  * @class RTSPClient
@@ -70,32 +70,30 @@
  * client.sendTeardown();
  * @endcode
  */
-class RTSPClient
-{
-public:
+class RTSPClient {
+  public:
     /**
      * @enum State
      * @brief RTSP client state machine states
      */
-    enum class State
-    {
-        INIT,   ///< Initial state - no session
-        READY,  ///< Session established, ready to play
-        PLAYING ///< Currently streaming video
+    enum class State {
+        INIT,    ///< Initial state - no session
+        READY,   ///< Session established, ready to play
+        PLAYING  ///< Currently streaming video
     };
 
-private:
-    State state_;           ///< Current state
-    int cseq_;              ///< RTSP CSeq counter
-    std::string sessionId_; ///< Session ID from server
+  private:
+    State state_;            ///< Current state
+    int cseq_;               ///< RTSP CSeq counter
+    std::string sessionId_;  ///< Session ID from server
 
-    std::unique_ptr<Socket> rtspSocket_; ///< TCP socket for RTSP
-    std::string serverIP_;               ///< Server IP address
-    int serverPort_;                     ///< Server RTSP port (default 8554)
+    std::unique_ptr<Socket> rtspSocket_;  ///< TCP socket for RTSP
+    std::string serverIP_;                ///< Server IP address
+    int serverPort_;                      ///< Server RTSP port (default 8554)
 
     // RTP info
-    int clientRTPPort_; ///< Local port for receiving RTP
-    int serverRTPPort_; ///< Server RTP port (from SETUP response)
+    int clientRTPPort_;  ///< Local port for receiving RTP
+    int serverRTPPort_;  ///< Server RTP port (from SETUP response)
 
     /**
      * @brief Send RTSP request and receive response
@@ -109,7 +107,7 @@ private:
      * - Logs request/response for debugging
      * - Validates response format
      */
-    std::string sendRtspRequest(const std::string &request);
+    std::string sendRtspRequest(const std::string& request);
 
     /**
      * @brief Parse RTSP response status line
@@ -120,7 +118,7 @@ private:
      * Parses first line: "RTSP/1.0 200 OK"
      * Extracts status code (200)
      */
-    int parseStatusCode(const std::string &response) const;
+    int parseStatusCode(const std::string& response) const;
 
     /**
      * @brief Extract Session ID from RTSP response
@@ -133,7 +131,7 @@ private:
      *
      * Example header: "Session: 123456789\r\n"
      */
-    std::string extractSessionId(const std::string &response) const;
+    std::string extractSessionId(const std::string& response) const;
 
     /**
      * @brief Extract server RTP port from SETUP response
@@ -144,7 +142,7 @@ private:
      * Parses Transport header:
      * "Transport: RTP/UDP; server_port=25000\r\n"
      */
-    int extractServerRTPPort(const std::string &response) const;
+    int extractServerRTPPort(const std::string& response) const;
 
     /**
      * @brief Validate state transition
@@ -153,7 +151,7 @@ private:
      */
     bool validateState(State expectedState) const;
 
-public:
+  public:
     /**
      * @brief Constructor - creates RTSP client
      * @param serverIP Server IP address (e.g., "127.0.0.1")
@@ -167,7 +165,7 @@ public:
      * - Initializes state to INIT
      * - Sets CSeq to 0
      */
-    RTSPClient(const std::string &serverIP, int serverPort = 8554);
+    RTSPClient(const std::string& serverIP, int serverPort = 8554);
 
     /**
      * @brief Destructor - closes connection
@@ -209,7 +207,7 @@ public:
      * @note Must be in INIT state
      * @note Stores session ID from response
      */
-    bool sendSetup(const std::string &videoFile, int clientRTPPort);
+    bool sendSetup(const std::string& videoFile, int clientRTPPort);
 
     /**
      * @brief Send RTSP PLAY request

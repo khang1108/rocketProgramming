@@ -1,14 +1,14 @@
 #ifndef SERVER_NETWORK_RTSPSERVER_HPP
 #define SERVER_NETWORK_RTSPSERVER_HPP
 
-#include "Socket.hpp"
-#include "ServerWorker.hpp"
-#include "utils/Logger.hpp"
-#include <vector>
-#include <memory>
-#include <thread>
 #include <atomic>
+#include <memory>
 #include <mutex>
+#include <thread>
+#include <vector>
+#include "ServerWorker.hpp"
+#include "Socket.hpp"
+#include "utils/Logger.hpp"
 
 /**
  * @class RTSPServer
@@ -22,9 +22,8 @@
  * - Managing active client sessions
  * - Clean shutdown of all connections
  */
-class RTSPServer
-{
-private:
+class RTSPServer {
+  private:
     int port;
     std::unique_ptr<Socket> listenSocket;
     std::atomic<bool> running{false};
@@ -33,8 +32,7 @@ private:
      * @struct ClientSession
      * @brief Represents an active client connection and its associated resources
      */
-    struct ClientSession
-    {
+    struct ClientSession {
         int clientId;
         std::unique_ptr<Socket> clientSocket;
         std::unique_ptr<ServerWorker> worker;
@@ -45,7 +43,7 @@ private:
     std::mutex sessionMutex;
     int nextClientId = 1;
 
-public:
+  public:
     //@brief: Initialize the TCP listen SOCKET
     RTSPServer(int serverPort);
     /*

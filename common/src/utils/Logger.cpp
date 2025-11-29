@@ -1,15 +1,11 @@
 #include "utils/Logger.hpp"
-#include <iomanip>
 #include <chrono>
 #include <cstring>
+#include <iomanip>
 
-Logger::Logger()
-    : logFile_(), minLevel_(LogLevel::INFO), mutex_(), initialized_(false)
-{
-}
+Logger::Logger() : logFile_(), minLevel_(LogLevel::INFO), mutex_(), initialized_(false) {}
 
-std::string Logger::getCurrentTime() const
-{
+std::string Logger::getCurrentTime() const {
     using namespace std::chrono;
     auto now = system_clock::now();
     std::time_t t = system_clock::to_time_t(now);
@@ -20,7 +16,7 @@ std::string Logger::getCurrentTime() const
 #elif defined(__unix__) || defined(__APPLE__)
     localtime_r(&t, &tm);
 #else
-    std::tm *tmp = std::localtime(&t);
+    std::tm* tmp = std::localtime(&t);
     if (tmp)
         tm = *tmp;
 #endif
@@ -30,33 +26,29 @@ std::string Logger::getCurrentTime() const
     return std::string(buf);
 }
 
-std::string Logger::levelToString(LogLevel level) const
-{
-    switch (level)
-    {
-    case LogLevel::DEBUG:
-        return "DEBUG";
-    case LogLevel::INFO:
-        return "INFO ";
-    case LogLevel::WARN:
-        return "WARN ";
-    case LogLevel::ERROR:
-        return "ERROR";
-    default:
-        return "UNK  ";
+std::string Logger::levelToString(LogLevel level) const {
+    switch (level) {
+        case LogLevel::DEBUG:
+            return "DEBUG";
+        case LogLevel::INFO:
+            return "INFO ";
+        case LogLevel::WARN:
+            return "WARN ";
+        case LogLevel::ERROR:
+            return "ERROR";
+        default:
+            return "UNK  ";
     }
 }
 
-void Logger::initialize(const std::string &logFile, LogLevel level)
-{
+void Logger::initialize(const std::string& logFile, LogLevel level) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (logFile_.is_open())
         logFile_.close();
 
     logFile_.open(logFile, std::ios::app);
-    if (!logFile_.is_open())
-    {
+    if (!logFile_.is_open()) {
         std::cerr << "Logger: failed to open log file: " << logFile << std::endl;
     }
 
@@ -64,8 +56,7 @@ void Logger::initialize(const std::string &logFile, LogLevel level)
     initialized_ = true;
 }
 
-void Logger::log(LogLevel level, const std::string &message)
-{
+void Logger::log(LogLevel level, const std::string& message) {
     // Filter by minimum level
     if (static_cast<int>(level) < static_cast<int>(minLevel_))
         return;
@@ -83,21 +74,18 @@ void Logger::log(LogLevel level, const std::string &message)
     std::cout << out;
 
     // File output if available
-    if (logFile_.is_open())
-    {
+    if (logFile_.is_open()) {
         logFile_ << out;
         logFile_.flush();
     }
 }
 
-void Logger::setMinLevel(LogLevel level)
-{
+void Logger::setMinLevel(LogLevel level) {
     std::lock_guard<std::mutex> lock(mutex_);
     minLevel_ = level;
 }
 
-Logger::~Logger()
-{
+Logger::~Logger() {
     std::lock_guard<std::mutex> lock(mutex_);
     if (logFile_.is_open())
         logFile_.close();
