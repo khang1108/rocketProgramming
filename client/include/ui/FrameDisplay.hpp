@@ -30,6 +30,11 @@ private:
     std::thread displayThread_;
     std::atomic<bool> running_;
 
+    mutable std::atomic<double> fps_;
+    mutable std::atomic<int> frameCount_;
+    mutable std::chrono::steady_clock::time_point fpsStartTime_;
+    mutable std::chrono::steady_clock::time_point lastFrameTime_;
+
     /**
      * @brief Display loop (runs in thread)
      * 
