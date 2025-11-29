@@ -1,10 +1,10 @@
 #ifndef COMMON_NETWORK_SOCKET_HPP
 #define COMMON_NETWORK_SOCKET_HPP
 
-#include <string>
+#include <cstring>
 #include <memory>
 #include <stdexcept>
-#include <cstring>
+#include <string>
 #include <vector>
 
 #ifdef _WIN32
@@ -13,14 +13,14 @@
 #pragma comment(lib, "ws2_32.lib")
 typedef int socklen_t;
 #else
+#include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 typedef int SOCKET;
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -90,10 +90,9 @@ typedef int SOCKET;
  * @enum SocketType
  * @brief Defines the type of socket protocol
  */
-enum class SocketType
-{
-    TCP, ///< TCP socket (SOCK_STREAM, reliable, connection-oriented)
-    UDP  ///< UDP socket (SOCK_DGRAM, unreliable, connectionless)
+enum class SocketType {
+    TCP,  ///< TCP socket (SOCK_STREAM, reliable, connection-oriented)
+    UDP   ///< UDP socket (SOCK_DGRAM, unreliable, connectionless)
 };
 
 /**
@@ -113,11 +112,9 @@ enum class SocketType
  * }
  * @endcode
  */
-class SocketException : public std::runtime_error
-{
-public:
-    explicit SocketException(const std::string &message)
-        : std::runtime_error(message) {}
+class SocketException : public std::runtime_error {
+  public:
+    explicit SocketException(const std::string& message) : std::runtime_error(message) {}
 };
 
 /**
@@ -133,11 +130,9 @@ public:
  * - receiveFrom() waits longer than timeout
  * - accept() waits longer than timeout (if timeout is set)
  */
-class SocketTimeout : public SocketException
-{
-public:
-    explicit SocketTimeout(const std::string &message)
-        : SocketException(message) {}
+class SocketTimeout : public SocketException {
+  public:
+    explicit SocketTimeout(const std::string& message) : SocketException(message) {}
 };
 
 /**
@@ -170,22 +165,21 @@ public:
  * @note Non-copyable: Prevents accidental socket descriptor duplication
  * @note Movable: Allows transfer of ownership (e.g., returning from accept())
  */
-class Socket
-{
-private:
+class Socket {
+  private:
     // ==================== MEMBER VARIABLES ====================
 
-    SOCKET sockfd_;   ///< Native socket descriptor (int on Unix, SOCKET on Windows)
-    SocketType type_; ///< Socket type (TCP or UDP)
-    bool connected_;  ///< True if TCP socket is connected
-    bool bound_;      ///< True if socket is bound to local address
+    SOCKET sockfd_;    ///< Native socket descriptor (int on Unix, SOCKET on Windows)
+    SocketType type_;  ///< Socket type (TCP or UDP)
+    bool connected_;   ///< True if TCP socket is connected
+    bool bound_;       ///< True if socket is bound to local address
 
-    struct sockaddr_in peerAddr_; ///< Peer address information (connected TCP or last UDP sender)
-    bool hasPeerInfo_;            ///< True if peerAddr_ contains valid information
+    struct sockaddr_in peerAddr_;  ///< Peer address information (connected TCP or last UDP sender)
+    bool hasPeerInfo_;             ///< True if peerAddr_ contains valid information
 
-    static bool wsaInitialized_; ///< Windows only: tracks WSAStartup status
+    static bool wsaInitialized_;  ///< Windows only: tracks WSAStartup status
 
-public:
+  public:
     // ==================== CONSTRUCTORS & DESTRUCTORS ====================
 
     /**
@@ -229,13 +223,13 @@ public:
      * @brief Copy constructor - DELETED
      * @details Sockets cannot be copied (would duplicate file descriptor)
      */
-    Socket(const Socket &) = delete;
+    Socket(const Socket&) = delete;
 
     /**
      * @brief Copy assignment - DELETED
      * @details Sockets cannot be copied (would duplicate file descriptor)
      */
-    Socket &operator=(const Socket &) = delete;
+    Socket& operator=(const Socket&) = delete;
 
     // ==================== MOVE OPERATIONS ====================
 
@@ -254,7 +248,7 @@ public:
      * Socket movedSocket = std::move(*client);
      * @endcode
      */
-    Socket(Socket &&other) noexcept;
+    Socket(Socket&& other) noexcept;
 
     /**
      * @brief Move assignment - transfers ownership
@@ -265,7 +259,7 @@ public:
      * @details
      * Closes current socket (if open) and transfers ownership from other.
      */
-    Socket &operator=(Socket &&other) noexcept;
+    Socket& operator=(Socket&& other) noexcept;
 
     // ==================== TCP SERVER OPERATIONS ====================
 
@@ -296,7 +290,7 @@ public:
      * server.bind("0.0.0.0", 8554);  // Listen on all interfaces, port 8554
      * @endcode
      */
-    void bind(const std::string &address, int port);
+    void bind(const std::string& address, int port);
 
     /**
      * @brief Start listening for incoming connections (TCP only)
@@ -409,7 +403,7 @@ public:
      * client.send(request.c_str(), request.size());
      * @endcode
      */
-    void connect(const std::string &host, int port);
+    void connect(const std::string& host, int port);
 
     // ==================== TCP DATA TRANSFER ====================
 
@@ -448,7 +442,7 @@ public:
      * }
      * @endcode
      */
-    int send(const uint8_t *data, size_t length);
+    int send(const uint8_t* data, size_t length);
 
     /**
      * @brief Receive data from TCP connection (blocking)
@@ -493,7 +487,7 @@ public:
      * }
      * @endcode
      */
-    int receive(uint8_t *buffer, size_t bufferSize);
+    int receive(uint8_t* buffer, size_t bufferSize);
 
     // ==================== UDP OPERATIONS ====================
 
@@ -539,8 +533,7 @@ public:
      *                  "192.168.1.100", 25000);
      * @endcode
      */
-    int sendTo(const uint8_t *data, size_t length,
-            const std::string &destAddress, int destPort);
+    int sendTo(const uint8_t* data, size_t length, const std::string& destAddress, int destPort);
 
     /**
      * @brief Receive UDP datagram (blocking)
@@ -597,8 +590,8 @@ public:
      * }
      * @endcode
      */
-    int receiveFrom(uint8_t *buffer, size_t bufferSize,
-                    std::string &sourceAddress, int &sourcePort);
+    int receiveFrom(uint8_t* buffer, size_t bufferSize, std::string& sourceAddress,
+                    int& sourcePort);
 
     // ==================== SOCKET OPTIONS ====================
 
@@ -918,7 +911,7 @@ public:
      */
     void shutdown(int how);
 
-private:
+  private:
     // ==================== INTERNAL HELPER METHODS ====================
 
     /**
@@ -950,7 +943,7 @@ private:
      * @param type Socket type
      * @param peerAddr Peer address information
      */
-    Socket(SOCKET sockfd, SocketType type, const sockaddr_in &peerAddr);
+    Socket(SOCKET sockfd, SocketType type, const sockaddr_in& peerAddr);
 };
 
 #endif

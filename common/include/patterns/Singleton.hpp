@@ -115,9 +115,8 @@
  * @note Nếu cần truyền parameters vào constructor, dùng SingletonWithInit
  */
 template <typename T>
-class Singleton
-{
-protected:
+class Singleton {
+  protected:
     /**
      * @brief Protected constructor - chỉ derived class có thể gọi
      * @note Prevent direct instantiation from outside
@@ -129,14 +128,14 @@ protected:
      */
     virtual ~Singleton() = default;
 
-public:
+  public:
     // Delete copy constructor và assignment operator
-    Singleton(const Singleton &) = delete;
-    Singleton &operator=(const Singleton &) = delete;
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
 
     // Delete move constructor và move assignment
-    Singleton(Singleton &&) = delete;
-    Singleton &operator=(Singleton &&) = delete;
+    Singleton(Singleton&&) = delete;
+    Singleton& operator=(Singleton&&) = delete;
 
     /**
      * @brief Lấy instance duy nhất của singleton
@@ -150,9 +149,8 @@ public:
      *
      * @note Thread-safe từ C++11 trở đi (magic statics)
      */
-    static T &getInstance()
-    {
-        static T instance; // Guaranteed to be thread-safe since C++11
+    static T& getInstance() {
+        static T instance;  // Guaranteed to be thread-safe since C++11
         return instance;
     }
 };
@@ -182,30 +180,27 @@ public:
  * @warning initialize() chỉ có thể gọi một lần duy nhất (protected by std::call_once)
  */
 template <typename T>
-class SingletonWithInit
-{
-protected:
+class SingletonWithInit {
+  protected:
     static std::unique_ptr<T> instance_;
     static std::once_flag initFlag_;
 
     SingletonWithInit() = default;
     virtual ~SingletonWithInit() = default;
 
-public:
-    SingletonWithInit(const SingletonWithInit &) = delete;
-    SingletonWithInit &operator=(const SingletonWithInit &) = delete;
-    SingletonWithInit(SingletonWithInit &&) = delete;
-    SingletonWithInit &operator=(SingletonWithInit &&) = delete;
+  public:
+    SingletonWithInit(const SingletonWithInit&) = delete;
+    SingletonWithInit& operator=(const SingletonWithInit&) = delete;
+    SingletonWithInit(SingletonWithInit&&) = delete;
+    SingletonWithInit& operator=(SingletonWithInit&&) = delete;
 
     /**
      * @brief Lấy instance (phải được initialize trước)
      * @return Reference đến singleton instance
      * @throws std::runtime_error nếu chưa được initialize
      */
-    static T &getInstance()
-    {
-        if (!instance_)
-        {
+    static T& getInstance() {
+        if (!instance_) {
             throw std::runtime_error("Singleton not initialized. Call initialize() first.");
         }
         return *instance_;
@@ -215,18 +210,12 @@ public:
      * @brief Kiểm tra xem singleton đã được initialize chưa
      * @return true nếu đã initialize
      */
-    static bool isInitialized()
-    {
-        return instance_ != nullptr;
-    }
+    static bool isInitialized() { return instance_ != nullptr; }
 
     /**
      * @brief Destroy singleton instance (optional, for testing)
      */
-    static void destroy()
-    {
-        instance_.reset();
-    }
+    static void destroy() { instance_.reset(); }
 };
 
 // Static member initialization
@@ -236,4 +225,4 @@ std::unique_ptr<T> SingletonWithInit<T>::instance_ = nullptr;
 template <typename T>
 std::once_flag SingletonWithInit<T>::initFlag_;
 
-#endif // SINGLETON_HPP
+#endif  // SINGLETON_HPP

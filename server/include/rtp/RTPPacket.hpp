@@ -2,15 +2,18 @@
 #define SERVER_RTP_RTPPACKET_HPP
 
 #include <array>
-#include <vector>
+#include <exception>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
-#include <memory>
-#include <exception>
+#include <vector>
 
 /**
  * @class RTPPacket
- * @brief Handles RTP (Real-time Transport Protocol) packet encoding and decoding for video streaming
+ * @brief Handles RTP (Real-time Transport Protocol) packet encoding and decoding for video
+ * streaming
  *
  * @details
  * RTP packet structure (RFC 3550):
@@ -44,42 +47,46 @@
  * @note This class is used by both server (encoding) and client (decoding)
  * @note All multi-byte fields are in network byte order (big-endian)
  */
-class RTPPacket
-{
-public:
+class RTPPacket {
+  public:
     // RTP Constants
-    static constexpr int HEADER_SIZE = 12;        ///< Fixed header size in bytes
-    static constexpr int RTP_VERSION = 2;         ///< RTP protocol version
-    static constexpr int MJPEG_TYPE = 26;         ///< Payload type for MJPEG video
-    static constexpr int MAX_PAYLOAD_SIZE = 1400; ///< Maximum payload size for MTU consideration
+    static constexpr int HEADER_SIZE = 12;         ///< Fixed header size in bytes
+    static constexpr int RTP_VERSION = 2;          ///< RTP protocol version
+    static constexpr int MJPEG_TYPE = 26;          ///< Payload type for MJPEG video
+    static constexpr int MAX_PAYLOAD_SIZE = 1400;  ///< Maximum payload size for MTU consideration
 
-private:
+  private:
     // RTP Header Fields (parsed values)
-    uint8_t version_;         ///< RTP version (2 bits)
-    uint8_t padding_;         ///< Padding flag (1 bit)
-    uint8_t extension_;       ///< Extension flag (1 bit)
-    uint8_t cc_;              ///< CSRC count (4 bits)
-    uint8_t marker_;          ///< Marker bit (1 bit) - set to 1 for last fragment
-    uint8_t payloadType_;     ///< Payload type (7 bits) - 26 for MJPEG
-    uint16_t sequenceNumber_; ///< Sequence number (16 bits)
-    uint32_t timestamp_;      ///< Timestamp (32 bits)
-    uint32_t ssrc_;           ///< SSRC identifier (32 bits)
+    uint8_t version_;          ///< RTP version (2 bits)
+    uint8_t padding_;          ///< Padding flag (1 bit)
+    uint8_t extension_;        ///< Extension flag (1 bit)
+    uint8_t cc_;               ///< CSRC count (4 bits)
+    uint8_t marker_;           ///< Marker bit (1 bit) - set to 1 for last fragment
+    uint8_t payloadType_;      ///< Payload type (7 bits) - 26 for MJPEG
+    uint16_t sequenceNumber_;  ///< Sequence number (16 bits)
+    uint32_t timestamp_;       ///< Timestamp (32 bits)
+    uint32_t ssrc_;            ///< SSRC identifier (32 bits)
 
     // Raw packet data (network byte order)
-    std::array<uint8_t, HEADER_SIZE> header_; // Fixed 12-byte header
-    std::vector<uint8_t> payload_;            // Payload data
+    std::array<uint8_t, HEADER_SIZE> header_;  // Fixed 12-byte header
+    std::vector<uint8_t> payload_;             // Payload data
 
-public:
+  public:
     // ==================== CONSTRUCTORS ====================
 
     /**
      * @brief Default constructor - creates empty packet
      */
     RTPPacket()
-        : version_(RTP_VERSION), padding_(0), extension_(0), cc_(0),
-          marker_(0), payloadType_(MJPEG_TYPE), sequenceNumber_(0),
-          timestamp_(0), ssrc_(0)
-    {
+        : version_(RTP_VERSION),
+          padding_(0),
+          extension_(0),
+          cc_(0),
+          marker_(0),
+          payloadType_(MJPEG_TYPE),
+          sequenceNumber_(0),
+          timestamp_(0),
+          ssrc_(0) {
         header_.fill(0);
     }
 
@@ -90,8 +97,7 @@ public:
      * @throws std::invalid_argument if packet is nullptr
      * @throws std::length_error if packetSize < HEADER_SIZE
      */
-    RTPPacket(const uint8_t *packet, size_t packetSize) : RTPPacket()
-    {
+    RTPPacket(const uint8_t* packet, size_t packetSize) : RTPPacket() {
         decode(packet, packetSize);
     }
 
@@ -111,7 +117,7 @@ public:
      * @throws std::invalid_argument if packet is nullptr
      * @throws std::length_error if packetSize < HEADER_SIZE
      */
-    void decode(const uint8_t *packet, size_t packetSize);
+    void decode(const uint8_t* packet, size_t packetSize);
 
     // ==================== GETTERS ====================
 
@@ -125,11 +131,11 @@ public:
     uint32_t getTimestamp() const { return timestamp_; }
     uint32_t getSSRC() const { return ssrc_; }
 
-    const std::vector<uint8_t> &getPayload() const { return payload_; }
-    std::vector<uint8_t> &getPayload() { return payload_; }
+    const std::vector<uint8_t>& getPayload() const { return payload_; }
+    std::vector<uint8_t>& getPayload() { return payload_; }
     size_t getPayloadSize() const { return payload_.size(); }
 
-    const std::array<uint8_t, HEADER_SIZE> &getHeader() const { return header_; }
+    const std::array<uint8_t, HEADER_SIZE>& getHeader() const { return header_; }
     size_t getLength() const { return HEADER_SIZE + payload_.size(); }
 
     /**
@@ -139,7 +145,7 @@ public:
      * @return Number of bytes written
      * @throws std::length_error if buffer too small
      */
-    size_t getPacket(uint8_t *buffer, size_t bufferSize) const;
+    size_t getPacket(uint8_t* buffer, size_t bufferSize) const;
 
     /**
      * @brief Get complete packet as vector
@@ -159,8 +165,8 @@ public:
     void setTimestamp(uint32_t ts) { timestamp_ = ts; }
     void setSSRC(uint32_t ssrc) { ssrc_ = ssrc; }
 
-    void setPayload(const uint8_t *data, size_t length);
-    void setPayload(const std::vector<uint8_t> &data) { payload_ = data; }
+    void setPayload(const uint8_t* data, size_t length);
+    void setPayload(const std::vector<uint8_t>& data) { payload_ = data; }
 
     // ==================== UTILITY METHODS ====================
 

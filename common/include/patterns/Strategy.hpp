@@ -59,9 +59,8 @@
  * @tparam OutputType Type of result produced by the strategy
  */
 template <typename InputType, typename OutputType>
-class Strategy
-{
-public:
+class Strategy {
+  public:
     /**
      * @brief Virtual destructor cho polymorphism
      */
@@ -73,7 +72,7 @@ public:
      * @return Kết quả sau khi xử lý
      * @note Pure virtual function - phải được implement bởi concrete strategy
      */
-    virtual OutputType execute(const InputType &input) = 0;
+    virtual OutputType execute(const InputType& input) = 0;
 };
 
 /**
@@ -83,12 +82,11 @@ public:
  * @tparam OutputType Kiểu dữ liệu đầu ra
  */
 template <typename InputType, typename OutputType>
-class Context
-{
-private:
+class Context {
+  private:
     std::unique_ptr<Strategy<InputType, OutputType>> strategy_;
 
-public:
+  public:
     /**
      * @brief Constructor với strategy mặc định
      * @param strategy Strategy ban đầu (optional)
@@ -100,8 +98,7 @@ public:
      * @brief Thiết lập strategy mới
      * @param strategy Strategy mới để sử dụng
      */
-    void setStrategy(std::unique_ptr<Strategy<InputType, OutputType>> strategy)
-    {
+    void setStrategy(std::unique_ptr<Strategy<InputType, OutputType>> strategy) {
         strategy_ = std::move(strategy);
     }
 
@@ -111,10 +108,8 @@ public:
      * @return Kết quả từ strategy
      * @throws std::runtime_error nếu strategy chưa được set
      */
-    OutputType executeStrategy(const InputType &input)
-    {
-        if (!strategy_)
-        {
+    OutputType executeStrategy(const InputType& input) {
+        if (!strategy_) {
             throw std::runtime_error("Strategy not set");
         }
         return strategy_->execute(input);
@@ -124,10 +119,7 @@ public:
      * @brief Kiểm tra xem strategy đã được set chưa
      * @return true nếu strategy đã được set
      */
-    bool hasStrategy() const
-    {
-        return strategy_ != nullptr;
-    }
+    bool hasStrategy() const { return strategy_ != nullptr; }
 };
 
-#endif // STRATEGY_HPP
+#endif  // STRATEGY_HPP

@@ -14,10 +14,17 @@
  * test_encoding_strategy.cpp ../src/rtp/EncodingStrategy.cpp
  */
 
+<<<<<<< HEAD
 #include "rtp/EncodingStrategy.hpp"
 #include <cassert>
 #include <iostream>
 #include <vector>
+=======
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include "rtp/EncodingStrategy.hpp"
+>>>>>>> origin/main
 
 // Platform detection for display
 #ifdef _WIN32
@@ -46,8 +53,12 @@ void printPlatformInfo() {
     std::cout << "========================================" << std::endl;
     std::cout << "  EncodingStrategy Cross-Platform Test" << std::endl;
     std::cout << "========================================" << std::endl;
+<<<<<<< HEAD
     std::cout << "Platform: " << PLATFORM_NAME << " (" << ARCH_NAME << ")"
                 << std::endl;
+=======
+    std::cout << "Platform: " << PLATFORM_NAME << " (" << ARCH_NAME << ")" << std::endl;
+>>>>>>> origin/main
     std::cout << "C++ Version: " << __cplusplus << std::endl;
     std::cout << "========================================\n" << std::endl;
 }
@@ -67,10 +78,15 @@ void testSDEncoding() {
     assert(packets.size() == 1);
     std::cout << "✓ Frame size: " << smallData.size() << " bytes" << std::endl;
     std::cout << "✓ Packets generated: " << packets.size() << std::endl;
+<<<<<<< HEAD
     std::cout << "✓ Marker bit: " << (packets[0].getMarker() ? "1 (last)" : "0")
                 << std::endl;
     std::cout << "✓ Sequence number: " << packets[0].getSequenceNumber()
                 << std::endl;
+=======
+    std::cout << "✓ Marker bit: " << (packets[0].getMarker() ? "1 (last)" : "0") << std::endl;
+    std::cout << "✓ Sequence number: " << packets[0].getSequenceNumber() << std::endl;
+>>>>>>> origin/main
     std::cout << "✓ Timestamp: " << packets[0].getTimestamp() << std::endl;
     std::cout << "✓ PASS: SD Encoding works!\n" << std::endl;
 }
@@ -80,7 +96,11 @@ void testHDEncoding() {
     std::cout << "------------------------------------" << std::endl;
 
     // Create large frame (> MAX_PAYLOAD_SIZE = 1400 bytes)
+<<<<<<< HEAD
     const size_t largeSize = 5000; // 5KB frame
+=======
+    const size_t largeSize = 5000;  // 5KB frame
+>>>>>>> origin/main
     std::vector<uint8_t> largeData(largeSize, 0xAA);
     Frame largeFrame(largeData, 200, 180000, 87654321);
 
@@ -88,8 +108,13 @@ void testHDEncoding() {
     std::vector<RTPPacket> packets = hdStrategy.execute(largeFrame);
 
     // Calculate expected packet count
+<<<<<<< HEAD
     size_t expectedPackets = (largeSize + RTPPacket::MAX_PAYLOAD_SIZE - 1) /
                             RTPPacket::MAX_PAYLOAD_SIZE;
+=======
+    size_t expectedPackets =
+        (largeSize + RTPPacket::MAX_PAYLOAD_SIZE - 1) / RTPPacket::MAX_PAYLOAD_SIZE;
+>>>>>>> origin/main
 
     // Verify
     assert(packets.size() == expectedPackets);
@@ -102,12 +127,18 @@ void testHDEncoding() {
         bool isLast = (i == packets.size() - 1);
         assert(packets[i].getMarker() == (isLast ? 1 : 0));
         std::cout << "✓ Packet " << i << ": marker=" << packets[i].getMarker()
+<<<<<<< HEAD
                 << ", seq=" << packets[i].getSequenceNumber()
                 << ", ts=" << packets[i].getTimestamp() << std::endl;
+=======
+                  << ", seq=" << packets[i].getSequenceNumber()
+                  << ", ts=" << packets[i].getTimestamp() << std::endl;
+>>>>>>> origin/main
     }
 
     // Verify all timestamps are the same
     uint32_t firstTimestamp = packets[0].getTimestamp();
+<<<<<<< HEAD
     for (const auto &packet : packets) {
         assert(packet.getTimestamp() == firstTimestamp);
     }
@@ -118,6 +149,16 @@ void testHDEncoding() {
     for (size_t i = 1; i < packets.size(); i++) {
         assert(packets[i].getSequenceNumber() ==
             packets[i - 1].getSequenceNumber() + 1);
+=======
+    for (const auto& packet : packets) {
+        assert(packet.getTimestamp() == firstTimestamp);
+    }
+    std::cout << "✓ All fragments have same timestamp: " << firstTimestamp << std::endl;
+
+    // Verify sequence numbers increment
+    for (size_t i = 1; i < packets.size(); i++) {
+        assert(packets[i].getSequenceNumber() == packets[i - 1].getSequenceNumber() + 1);
+>>>>>>> origin/main
     }
     std::cout << "✓ Sequence numbers increment correctly" << std::endl;
     std::cout << "✓ PASS: HD Encoding works!\n" << std::endl;
@@ -164,24 +205,36 @@ void testBoundaryConditions() {
     Frame exactFrame(exactData, 500, 450000, 33333333);
     auto exactPackets = context.encodeFrame(exactFrame);
     assert(exactPackets.size() == 1);
+<<<<<<< HEAD
     std::cout << "✓ Exact MAX_PAYLOAD_SIZE: " << exactPackets.size() << " packet"
                 << std::endl;
+=======
+    std::cout << "✓ Exact MAX_PAYLOAD_SIZE: " << exactPackets.size() << " packet" << std::endl;
+>>>>>>> origin/main
 
     // MAX_PAYLOAD_SIZE + 1
     std::vector<uint8_t> overData(RTPPacket::MAX_PAYLOAD_SIZE + 1, 0xEE);
     Frame overFrame(overData, 600, 540000, 44444444);
     auto overPackets = context.encodeFrame(overFrame);
     assert(overPackets.size() == 2);
+<<<<<<< HEAD
     std::cout << "✓ MAX_PAYLOAD_SIZE + 1: " << overPackets.size() << " packets"
                 << std::endl;
+=======
+    std::cout << "✓ MAX_PAYLOAD_SIZE + 1: " << overPackets.size() << " packets" << std::endl;
+>>>>>>> origin/main
 
     // Very small frame
     std::vector<uint8_t> tinyData(10, 0xFF);
     Frame tinyFrame(tinyData, 700, 630000, 55555555);
     auto tinyPackets = context.encodeFrame(tinyFrame);
     assert(tinyPackets.size() == 1);
+<<<<<<< HEAD
     std::cout << "✓ Tiny frame (10 bytes): " << tinyPackets.size() << " packet"
                 << std::endl;
+=======
+    std::cout << "✓ Tiny frame (10 bytes): " << tinyPackets.size() << " packet" << std::endl;
+>>>>>>> origin/main
 
     std::cout << "✓ PASS: Boundary conditions handled correctly!\n" << std::endl;
 }
@@ -201,7 +254,11 @@ int main() {
         std::cout << "========================================" << std::endl;
 
         return 0;
+<<<<<<< HEAD
     } catch (const std::exception &e) {
+=======
+    } catch (const std::exception& e) {
+>>>>>>> origin/main
         std::cerr << "\n❌ TEST FAILED: " << e.what() << std::endl;
         return 1;
     }

@@ -8,11 +8,11 @@
  * Full RTSP client implementation will be added in Day 2+
  */
 
-#include "utils/Logger.hpp"
-#include "utils/Config.hpp"
-#include "network/RTSPClient.hpp"
 #include <iostream>
 #include <string>
+#include "network/RTSPClient.hpp"
+#include "utils/Config.hpp"
+#include "utils/Logger.hpp"
 
 /**
  * @brief Client application entry point
@@ -27,10 +27,8 @@
  * Example:
  *   ./client 127.0.0.1 8554
  */
-int main(int argc, char *argv[])
-{
-    try
-    {
+int main(int argc, char* argv[]) {
+    try {
         // ==================== INITIALIZATION ====================
 
         // Initialize logger (removed DEBUG to avoid conflicts)
@@ -43,7 +41,7 @@ int main(int argc, char *argv[])
 
         // Initialize config
         Config::initialize("client.conf");
-        auto &config = Config::getInstance();
+        auto& config = Config::getInstance();
 
         LOG_INFO("Configuration loaded:");
         config.dump();
@@ -54,14 +52,12 @@ int main(int argc, char *argv[])
         int serverPort = config.getInt("server_port", 8554);
 
         // Command line overrides config
-        if (argc >= 2)
-        {
+        if (argc >= 2) {
             serverIP = argv[1];
             LOG_INFO("Server IP (from command line): " + serverIP);
         }
 
-        if (argc >= 3)
-        {
+        if (argc >= 3) {
             serverPort = std::stoi(argv[2]);
             LOG_INFO("Server port (from command line): " + std::to_string(serverPort));
         }
@@ -81,7 +77,8 @@ int main(int argc, char *argv[])
         LOG_INFO("\nConfig test:");
         LOG_INFO("  server_port = " + std::to_string(config.getInt("server_port")));
         LOG_INFO("  video_file = " + config.getString("video_file", "N/A"));
-        LOG_INFO("  debug_mode = " + std::string(config.getBool("debug_mode", false) ? "true" : "false"));
+        LOG_INFO("  debug_mode = " +
+                 std::string(config.getBool("debug_mode", false) ? "true" : "false"));
 
         // ==================== PLACEHOLDER FOR DAY 2+ ====================
 
@@ -98,9 +95,7 @@ int main(int argc, char *argv[])
         LOG_INFO("   ✅ Day 1 Skeleton COMPLETED!");
         LOG_INFO("   Ready for RTSP implementation");
         LOG_INFO("========================================");
-    }
-    catch (const std::exception &e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("FATAL ERROR: " + std::string(e.what()));
         std::cerr << "ERROR: " << e.what() << std::endl;
         return 1;

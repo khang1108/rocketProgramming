@@ -1,10 +1,10 @@
 #ifndef SERVER_RTP_RTPPACKETBUILDER_HPP
 #define SERVER_RTP_RTPPACKETBUILDER_HPP
 
-#include "RTPPacket.hpp"
-#include "../patterns/Builder.hpp"
 #include <memory>
 #include <stdexcept>
+#include "RTPPacket.hpp"
+#include "patterns/Builder.hpp"
 
 /**
  * @class RTPPacketBuilder
@@ -36,7 +36,8 @@
  *     .build();
  *
  * // Send packet over UDP
- * socket->sendTo(packet.getPacketVector().data(), packet.getLength(), clientAddr);
+ * socket->sendTo(packet.getPacketVector().data(), packet.getLength(),
+ * clientAddr);
  * @endcode
  *
  * @example Sử dụng với HD video fragmentation:
@@ -60,8 +61,8 @@
  *         .setPayload(&largeFrame[offset], chunkSize)
  *         .build();
  *
- *     socket->sendTo(packet.getPacketVector().data(), packet.getLength(), clientAddr);
- *     offset += chunkSize;
+ *     socket->sendTo(packet.getPacketVector().data(), packet.getLength(),
+ * clientAddr); offset += chunkSize;
  * }
  * @endcode
  *
@@ -69,9 +70,8 @@
  * @see RTPPacket - Data class được build bởi builder này
  * @see EncodingStrategy - Strategy pattern cho SD/HD encoding
  */
-class RTPPacketBuilder : public Builder<RTPPacket>
-{
-private:
+class RTPPacketBuilder : public Builder<RTPPacket> {
+  private:
     // Header fields
     uint8_t version_;
     uint8_t padding_;
@@ -92,7 +92,7 @@ private:
     bool ssrcSet_;
     bool payloadSet_;
 
-public:
+  public:
     /**
      * @brief Constructor - khởi tạo builder với default values
      * @details Sets reasonable defaults:
@@ -125,10 +125,8 @@ public:
      * @return Reference to this builder (for method chaining)
      * @throws std::invalid_argument if version != 2
      */
-    RTPPacketBuilder &setVersion(uint8_t version)
-    {
-        if (version != 2)
-        {
+    RTPPacketBuilder& setVersion(uint8_t version) {
+        if (version != 2) {
             throw std::invalid_argument("RTP version must be 2");
         }
         version_ = version;
@@ -140,8 +138,7 @@ public:
      * @param padding 1 if padding present, 0 otherwise
      * @return Reference to this builder
      */
-    RTPPacketBuilder &setPadding(uint8_t padding)
-    {
+    RTPPacketBuilder& setPadding(uint8_t padding) {
         padding_ = padding & 0x01;
         return *this;
     }
@@ -151,8 +148,7 @@ public:
      * @param extension 1 if extension header present, 0 otherwise
      * @return Reference to this builder
      */
-    RTPPacketBuilder &setExtension(uint8_t extension)
-    {
+    RTPPacketBuilder& setExtension(uint8_t extension) {
         extension_ = extension & 0x01;
         return *this;
     }
@@ -163,10 +159,8 @@ public:
      * @return Reference to this builder
      * @throws std::invalid_argument if cc > 15
      */
-    RTPPacketBuilder &setCC(uint8_t cc)
-    {
-        if (cc > 15)
-        {
+    RTPPacketBuilder& setCC(uint8_t cc) {
+        if (cc > 15) {
             throw std::invalid_argument("CC must be 0-15");
         }
         cc_ = cc;
@@ -179,8 +173,7 @@ public:
      * @return Reference to this builder
      * @note Quan trọng cho HD fragmentation - phải set = 1 cho packet cuối
      */
-    RTPPacketBuilder &setMarker(uint8_t marker)
-    {
+    RTPPacketBuilder& setMarker(uint8_t marker) {
         marker_ = marker & 0x01;
         return *this;
     }
@@ -191,10 +184,8 @@ public:
      * @return Reference to this builder
      * @throws std::invalid_argument if payloadType > 127
      */
-    RTPPacketBuilder &setPayloadType(uint8_t payloadType)
-    {
-        if (payloadType > 127)
-        {
+    RTPPacketBuilder& setPayloadType(uint8_t payloadType) {
+        if (payloadType > 127) {
             throw std::invalid_argument("Payload type must be 0-127");
         }
         payloadType_ = payloadType;
@@ -207,8 +198,7 @@ public:
      * @return Reference to this builder
      * @note Sequence number wraps at 65535, phải increment cho mỗi packet
      */
-    RTPPacketBuilder &setSequenceNumber(uint16_t sequenceNumber)
-    {
+    RTPPacketBuilder& setSequenceNumber(uint16_t sequenceNumber) {
         sequenceNumber_ = sequenceNumber;
         seqSet_ = true;
         return *this;
@@ -221,8 +211,7 @@ public:
      * @note Dùng RTPPacket::getCurrentTimestamp() để lấy timestamp hiện tại
      * @note Tất cả fragments của cùng frame phải có SAME timestamp
      */
-    RTPPacketBuilder &setTimestamp(uint32_t timestamp)
-    {
+    RTPPacketBuilder& setTimestamp(uint32_t timestamp) {
         timestamp_ = timestamp;
         timestampSet_ = true;
         return *this;
@@ -234,8 +223,7 @@ public:
      * @return Reference to this builder
      * @note Mỗi server/stream phải có unique SSRC
      */
-    RTPPacketBuilder &setSSRC(uint32_t ssrc)
-    {
+    RTPPacketBuilder& setSSRC(uint32_t ssrc) {
         ssrc_ = ssrc;
         ssrcSet_ = true;
         return *this;
@@ -249,10 +237,8 @@ public:
      * @throws std::invalid_argument if data is nullptr or length is 0
      * @warning Payload size không nên vượt quá MAX_PAYLOAD_SIZE (1400 bytes)
      */
-    RTPPacketBuilder &setPayload(const uint8_t *data, size_t length)
-    {
-        if (!data || length == 0)
-        {
+    RTPPacketBuilder& setPayload(const uint8_t* data, size_t length) {
+        if (!data || length == 0) {
             throw std::invalid_argument("Invalid payload data");
         }
         payload_.assign(data, data + length);
@@ -266,10 +252,8 @@ public:
      * @return Reference to this builder
      * @throws std::invalid_argument if data is empty
      */
-    RTPPacketBuilder &setPayload(const std::vector<uint8_t> &data)
-    {
-        if (data.empty())
-        {
+    RTPPacketBuilder& setPayload(const std::vector<uint8_t>& data) {
+        if (data.empty()) {
             throw std::invalid_argument("Payload cannot be empty");
         }
         payload_ = data;
@@ -291,23 +275,18 @@ public:
      * 5. Gọi encode() để build raw header bytes
      * 6. Trả về packet hoàn chỉnh
      */
-    RTPPacket build() override
-    {
+    RTPPacket build() override {
         // Validate required fields
-        if (!seqSet_)
-        {
+        if (!seqSet_) {
             throw std::runtime_error("Sequence number not set");
         }
-        if (!timestampSet_)
-        {
+        if (!timestampSet_) {
             throw std::runtime_error("Timestamp not set");
         }
-        if (!ssrcSet_)
-        {
+        if (!ssrcSet_) {
             throw std::runtime_error("SSRC not set");
         }
-        if (!payloadSet_)
-        {
+        if (!payloadSet_) {
             throw std::runtime_error("Payload not set");
         }
 
@@ -338,8 +317,7 @@ public:
      * @brief Reset builder về trạng thái ban đầu
      * @note Useful để reuse builder cho nhiều packets
      */
-    void reset() override
-    {
+    void reset() override {
         version_ = RTPPacket::RTP_VERSION;
         padding_ = 0;
         extension_ = 0;
@@ -360,10 +338,7 @@ public:
      * @brief Check if all required fields are set
      * @return true if builder ready to build
      */
-    bool isReady() const
-    {
-        return seqSet_ && timestampSet_ && ssrcSet_ && payloadSet_;
-    }
+    bool isReady() const { return seqSet_ && timestampSet_ && ssrcSet_ && payloadSet_; }
 };
 
-#endif // RTPPACKETBUILDER_HPP
+#endif  // RTPPACKETBUILDER_HPP

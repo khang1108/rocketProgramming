@@ -1,12 +1,12 @@
 #ifndef SERVER_VIDEO_VIDEOSTREAM_HPP
 #define SERVER_VIDEO_VIDEOSTREAM_HPP
 
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <stdexcept>
-#include <cstdint>
-#include <iostream>
 
 /**
  * @class VideoStream
@@ -63,14 +63,13 @@
  * @note This class is used by ServerWorker to read video frames
  * @note Each frame is a complete JPEG image (can be saved as .jpg)
  */
-class VideoStream
-{
-private:
-    std::ifstream videoFile_; ///< Input file stream
-    int frameNumber_;         ///< Current frame number (0-indexed)
-    std::string filename_;    ///< Video file path
+class VideoStream {
+  private:
+    std::ifstream videoFile_;  ///< Input file stream
+    int frameNumber_;          ///< Current frame number (0-indexed)
+    std::string filename_;     ///< Video file path
 
-public:
+  public:
     /**
      * @brief Constructor - opens MJPEG file
      * @param filename Path to MJPEG file (e.g., "movie.Mjpeg")
@@ -86,7 +85,7 @@ public:
      * VideoStream video("movie.Mjpeg");
      * @endcode
      */
-    VideoStream(const std::string &filename);
+    VideoStream(const std::string& filename);
 
     /**
      * @brief Destructor - closes file
