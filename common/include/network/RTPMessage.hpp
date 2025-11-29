@@ -3,6 +3,10 @@
 
 #include <map>
 #include <string>
+#include <sstream>
+#include <iostream>
+#include <vector>
+#include <stdexcept>
 
 /**
  * @class RTSPMessage
@@ -68,7 +72,7 @@ public:
      * // Output: "SETUP movie.Mjpeg RTSP/1.0\r\nCSeq: 1\r\n..."
      */
     static std::string buildRequest(const std::string &method,
-                                    int std::string url,
+                                    const std::string url,
                                     int cseq,
                                     const std::map<std::string, std::string> &headers = {});
 

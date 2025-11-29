@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/Server/include/rtp",
                 "${workspaceFolder}/Server/include/video",
-                "${workspaceFolder}/common/include/network"
+                "${workspaceFolder}/common/include/network",
+                "${workspaceFolder}/common/include/utils"
             ],
             "defines": [
                 "_DEBUG",
