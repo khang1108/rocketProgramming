@@ -12,6 +12,7 @@
 RTPReceiver::RTPReceiver(int rtpPort)
     : socket_(nullptr),
         rtpPort_(rtpPort),
+        frameReassembler_(nullptr),
         running_(false),
         packetReceived_(0),
         packetLost_(0),
@@ -93,6 +94,10 @@ void RTPReceiver::receiveLoop() {
             packetReceived_++;
 
             updateStatistics(packet.getSequenceNumber());
+
+            if (frameReassembler_) {
+                frameReassembler_->addPacket(packet);
+            }
 
             if (callback_) {
                 try {

@@ -27,7 +27,7 @@ public:
     using PacketCallback = std::function<void(const RTPPacket& packet)>;
 private:
     std::unique_ptr<Socket> socket_;
-    std::unique_ptr<FrameReassembler> frameReassembler_;
+    FrameReassembler* frameReassembler_;  
     int rtpPort_;
 
     std::thread receiverThread_;
