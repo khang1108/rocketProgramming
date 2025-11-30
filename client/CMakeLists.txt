@@ -59,6 +59,37 @@ target_link_libraries(${CLIENT_TARGET}
 )
 
 # ==============================================================================
+# Optional: OpenCV for Video Display
+# ==============================================================================
+
+find_package(OpenCV QUIET COMPONENTS core imgcodecs highgui)
+
+if(OpenCV_FOUND)
+    message(STATUS "")
+    message(STATUS "========================================")
+    message(STATUS "✓ OpenCV ${OpenCV_VERSION} FOUND")
+    message(STATUS "  Video display: ENABLED")
+    message(STATUS "========================================")
+    message(STATUS "")
+    
+    target_compile_definitions(${CLIENT_TARGET} PRIVATE USE_OPENCV)
+    target_link_libraries(${CLIENT_TARGET} PRIVATE ${OpenCV_LIBS})
+    target_include_directories(${CLIENT_TARGET} PRIVATE ${OpenCV_INCLUDE_DIRS})
+else()
+    message(STATUS "")
+    message(STATUS "========================================")
+    message(WARNING "✗ OpenCV NOT FOUND")
+    message(STATUS "  Video display: DISABLED (terminal mode)")
+    message(STATUS "")
+    message(STATUS "To enable video display, install OpenCV:")
+    message(STATUS "  Ubuntu: sudo apt install libopencv-dev")
+    message(STATUS "  macOS:  brew install opencv")
+    message(STATUS "  Windows: Download from https://opencv.org")
+    message(STATUS "========================================")
+    message(STATUS "")
+endif()
+
+# ==============================================================================
 # Compile Definitions
 # ==============================================================================
 

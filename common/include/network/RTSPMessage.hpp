@@ -1,5 +1,5 @@
-#ifndef COMMON_NETWORK_RTPMESSAGE_HPP
-#define COMMON_NETWORK_RTPMESSAGE_HPP
+#ifndef COMMON_NETWORK_RTSPMESSAGE_HPP
+#define COMMON_NETWORK_RTSPMESSAGE_HPP
 
 #include <map>
 #include <string>
@@ -16,7 +16,7 @@
  * Request:  METHOD URL RTSP/1.0\r\nCSeq: N\r\n[Headers]\r\n\r\n
  * Response: RTSP/1.0 CODE REASON\r\nCSeq: N\r\n[Headers]\r\n\r\n
  */
-class RTPMessage {
+class RTSPMessage {
 public:
     /**
      * @struct Request
@@ -72,7 +72,9 @@ public:
      * // Output: "SETUP movie.Mjpeg RTSP/1.0\r\nCSeq: 1\r\n..."
      */
     static std::string buildRequest(const std::string &method,
+
                                     const std::string url,
+
                                     int cseq,
                                     const std::map<std::string, std::string> &headers = {});
 

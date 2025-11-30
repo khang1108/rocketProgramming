@@ -33,7 +33,6 @@ class ServerWorker {
   private:
     int clientId_;
     std::unique_ptr<Socket> socket_;
-    std::unique_ptr<VideoStream> videoStream_;
 
     std::string clientIP_;
     int clientRTPPort_;
