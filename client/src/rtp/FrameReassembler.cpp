@@ -45,17 +45,14 @@ void FrameReassembler::addPacket(const RTPPacket& packet) {
     }
 
     auto& buf = it->second;
-    // insert payload copy keyed by sequence number
     buf.packets[packet.getSequenceNumber()] = packet.getPayload();
 
-    // If this packet has marker bit, it is the last packet of the frame
     if (packet.getMarker()) {
         buf.lastSeq = packet.getSequenceNumber();
     }
 }
 
 bool FrameReassembler::tryReassemble(uint32_t timestamp) {
-    // We'll gather the frame while holding the lock and invoke callback without the lock
     Frame frameOut;
     FrameCallback cb;
 
