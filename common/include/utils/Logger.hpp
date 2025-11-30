@@ -13,6 +13,7 @@
  * @enum LogLevel
  * @brief Các mức độ logging
  */
+
 enum class LogLevel
 {
 // Avoid accidental macro collision with a global DEBUG macro
@@ -167,4 +168,5 @@ class Logger : public Singleton<Logger> {
  * @param msg Message string
  */
 #define LOG_ERROR(msg) Logger::getInstance().log(LogLevel::ERROR, msg)
+
 #endif
