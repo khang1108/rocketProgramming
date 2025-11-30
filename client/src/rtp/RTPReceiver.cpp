@@ -19,10 +19,8 @@ RTPReceiver::RTPReceiver(int rtpPort)
         socket_ = std::make_unique<Socket>(SocketType::UDP);
         socket_->setReuseAddress(true);
         socket_->bind("0.0.0.0", rtpPort_);
-        // Small timeout so receiveLoop can check running_ frequently
         socket_->setTimeout(5);  // milliseconds
     } catch (const SocketException& e) {
-        // Propagate exception to caller
         throw;
     }
 }
@@ -42,7 +40,6 @@ void RTPReceiver::stop() {
     if (!running_)
         return;
     running_ = false;
-    // Closing socket will cause receiveFrom to throw / unblock
     try {
         if (socket_)
             socket_->close();
@@ -76,15 +73,12 @@ void RTPReceiver::receiveLoop() {
                 try {
                     callback_(packet);
                 } catch (const std::exception& e) {
-                    // swallow callback exceptions to keep receiver running
                     std::cerr << "RTPReceiver callback exception: " << e.what() << std::endl;
                 }
             }
         } catch (const SocketTimeout& e) {
-            // Timeout - loop again to check running_
             continue;
         } catch (const SocketException& e) {
-            // Socket error - break the loop
             std::cerr << "RTPReceiver socket error: " << e.what() << std::endl;
             break;
         } catch (const std::exception& e) {
@@ -95,7 +89,6 @@ void RTPReceiver::receiveLoop() {
 }
 
 void RTPReceiver::updateStatistics(uint16_t currentSeq) {
-    // First packet initialization
     if (lastSequenceNumber_ == 0) {
         lastSequenceNumber_ = currentSeq;
         return;

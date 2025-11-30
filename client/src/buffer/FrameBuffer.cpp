@@ -19,7 +19,6 @@ bool FrameBuffer::push(const std::vector<uint8_t>& frameData) {
 bool FrameBuffer::pop(std::vector<uint8_t>& frameData, int timeoutMs) {
     std::unique_lock<std::mutex> lock(mutex_);
     if (timeoutMs <= 0) {
-        // wait until not empty or closed
         cvNotEmpty_.wait(lock, [this]() { return closed_ || !buffer_.empty(); });
         if (buffer_.empty())
             return false;  // closed and empty
