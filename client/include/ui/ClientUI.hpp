@@ -1,13 +1,38 @@
 #ifndef CLIENT_UI_CLIENTUI_HPP
 #define CLIENT_UI_CLIENTUI_HPP
 
+#include <opencv4/opencv2/opencv.hpp>
+
+#include <vector>
 #include <memory>
 #include <string>
+#include <functional>
+
 #include "network/RTSPClient.hpp"
 #include "rtp/RTPReceiver.hpp"
 #include "rtp/FrameReassembler.hpp"
 #include "buffer/FrameBuffer.hpp"
 #include "ui/FrameDisplay.hpp"
+
+#ifdef USE_OPENCV
+    #include <opencv4/opencv2/opencv.hpp>   
+    
+    /**
+     * @brief Button structure for GUI
+     */
+    struct Button
+    {
+        cv::Rect rect;
+        std::string label;
+        cv::Scalar color;
+        cv::Scalar hoverColor;
+        bool enabled;
+        bool hovered; 
+    };
+
+    void mouseCallback(int event, int x, int y, int flags, void* userdata);
+    cv::Mat createControlPanel(int width, int height, const std::string& status);
+#endif
 
 /**
  * @class ClientUI
