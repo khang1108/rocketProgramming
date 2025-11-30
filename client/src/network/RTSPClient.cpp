@@ -224,14 +224,12 @@ bool RTSPClient::sendTeardown() {
     try {
         std::string resp = sendRtspRequest(req.str());
         int code = parseStatusCode(resp);
-        // regardless of response, we consider session ended locally
         sessionId_.clear();
         state_ = State::INIT;
         clientRTPPort_ = 0;
         serverRTPPort_ = 0;
         return code == 200;
     } catch (const SocketException&) {
-        // If send fails, still clear local state
         sessionId_.clear();
         state_ = State::INIT;
         clientRTPPort_ = 0;
