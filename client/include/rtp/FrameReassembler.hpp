@@ -74,6 +74,12 @@ public:
     FrameReassembler();
 
     /**
+     * @brief Constructor with FrameBuffer
+     * @param frameBuffer Pointer to FrameBuffer (does not own)
+     */
+    explicit FrameReassembler(FrameBuffer* frameBuffer);
+
+    /**
      * @brief Set frame callback
      * @param callback Function to call for complete frames
      * 

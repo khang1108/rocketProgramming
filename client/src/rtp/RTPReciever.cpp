@@ -4,17 +4,19 @@
 #include <cstring>
 #include <iostream>
 
-#include "network/Socket.hpp"
-#include "rtp/RTPPacket.hpp"
+#include "rtp/RTPReceiver.hpp"
+#include "rtp/FrameReassembler.hpp"
+#include "utils/Logger.hpp"
+// #include "network/SocketException.hpp"
 
 RTPReceiver::RTPReceiver(int rtpPort)
     : socket_(nullptr),
-      rtpPort_(rtpPort),
-      running_(false),
-      packetReceived_(0),
-      packetLost_(0),
-      bytesReceived_(0),
-      lastSequenceNumber_(0) {
+        rtpPort_(rtpPort),
+        running_(false),
+        packetReceived_(0),
+        packetLost_(0),
+        bytesReceived_(0),
+        lastSequenceNumber_(0) {
     try {
         socket_ = std::make_unique<Socket>(SocketType::UDP);
         socket_->setReuseAddress(true);
@@ -27,6 +29,26 @@ RTPReceiver::RTPReceiver(int rtpPort)
     }
 }
 
+RTPReceiver::RTPReceiver(int rtpPort, FrameReassembler* frameReassembler)
+    : rtpPort_(rtpPort),
+        frameReassembler_(frameReassembler), 
+        running_(false),
+        packetReceived_(0),
+        packetLost_(0),
+        bytesReceived_(0),
+        lastSequenceNumber_(0)
+{
+    if (!frameReassembler_) {
+        throw std::invalid_argument("FrameReassembler cannot be null");
+    }
+    
+    // Create UDP socket
+    socket_ = std::make_unique<Socket>(SocketType::UDP);
+    socket_->bind("0.0.0.0", rtpPort_);
+    socket_->setTimeout(5);  
+    
+    LOG_INFO("RTPReceiver created on port " + std::to_string(rtpPort_));
+}
 RTPReceiver::~RTPReceiver() {
     stop();
 }

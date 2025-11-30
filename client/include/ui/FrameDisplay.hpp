@@ -3,6 +3,8 @@
 
 #include <atomic>
 #include <memory>
+#include <chrono>
+#include <string>
 #include <thread>
 #include <vector>
 
