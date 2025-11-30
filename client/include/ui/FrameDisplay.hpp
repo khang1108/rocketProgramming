@@ -7,7 +7,7 @@
 #include <vector>
 
 // Forward declaration (platform-specific)
-class FrameDisplayImpl;
+// class FrameDisplayImpl;
 
 /**
  * @class FrameDisplay
@@ -21,7 +21,7 @@ class FrameDisplayImpl;
 class FrameDisplay
 {
 private:
-    std::unique_ptr<FrameDisplayImpl> impl_; ///< Platform-specific implementation
+    // std::unique_ptr<FrameDisplayImpl> impl_; ///< Platform-specific implementation
 
     int width_;
     int height_;
