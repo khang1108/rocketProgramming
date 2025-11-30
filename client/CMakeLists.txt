@@ -46,6 +46,8 @@ target_include_directories(${CLIENT_TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/include/state
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ui
         ${CMAKE_CURRENT_SOURCE_DIR}/include/utils
+    # Ensure common headers (shared library) are available to client
+
 )
 
 # ==============================================================================
