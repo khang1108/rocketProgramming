@@ -96,3 +96,27 @@ test: $(TEST_RTP_PIPELINE) $(TEST_SERVER_SIM)
 
 clean:
 	rm -rf $(BUILD_DIR) $(TEST_RTP_PIPELINE) $(TEST_SERVER_SIM)
+
+# Add to existing Makefile
+
+# RTSPClient test
+TEST_RTSP_CLIENT = test_rtsp_client
+
+all: $(BUILD_DIR) $(TEST_RTP_PIPELINE) $(TEST_SERVER_SIM) $(TEST_RTSP_CLIENT)
+
+$(TEST_RTSP_CLIENT): $(BUILD_DIR)/test_rtsp_client.o \
+                     $(BUILD_DIR)/Socket.o \
+                     $(BUILD_DIR)/RTSPClient.o
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+$(BUILD_DIR)/test_rtsp_client.o: test_rtsp_client.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/Socket.o: $(COMMON_SRC)/network/Socket.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/RTSPClient.o: $(SRC_DIR)/network/RTSPClient.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR) $(TEST_RTP_PIPELINE) $(TEST_SERVER_SIM) $(TEST_RTSP_CLIENT)
