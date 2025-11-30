@@ -7,10 +7,11 @@
 #include <iostream>
 #include <iomanip>
 #include <chrono>
+#include <string>
 #include <cstring>
 
 FrameDisplay::FrameDisplay(int width, int height, 
-                            const std::string& title) : 
+                            const char* title) : 
                             width_(width),
                             height_(height),
                             windowTitle_(title),
@@ -80,7 +81,7 @@ bool FrameDisplay::displayFrame(const std::vector<uint8_t>& jpegData){
 
             cv::imshow(windowTitle_, frame);
 
-            rameCount_++;
+            frameCount_++;
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
                 now - fpsStartTime_

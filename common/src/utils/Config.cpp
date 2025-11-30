@@ -1,18 +1,20 @@
 #include "utils/Config.hpp"
 #include <algorithm>
 #include <cctype>
+#include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 #include "utils/Logger.hpp"
 
-Config::Config(const std::string& configFile)
-    : configMap_(), configFilePath_(configFile), mutex_() {
+Config::Config(const std::string &configFile)
+    : configMap_(), configFilePath_(configFile), mutex_()
+{
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::ifstream ifs(configFile);
-    if (!ifs) {
+    if (!ifs)
+    {
         // File not found or cannot open: set sensible defaults
         configFilePath_ = configFile;
         // Defaults as documented in header
@@ -30,15 +32,18 @@ Config::Config(const std::string& configFile)
     }
 
     std::string line;
-    while (std::getline(ifs, line)) {
+    while (std::getline(ifs, line))
+    {
         // Trim whitespace helpers
-        auto ltrim = [](std::string& s) {
-            s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                            [](unsigned char ch) { return !std::isspace(ch); }));
+        auto ltrim = [](std::string &s)
+        {
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch)
+                                            { return !std::isspace(ch); }));
         };
-        auto rtrim = [](std::string& s) {
-            s.erase(std::find_if(s.rbegin(), s.rend(),
-                                 [](unsigned char ch) { return !std::isspace(ch); })
+        auto rtrim = [](std::string &s)
+        {
+            s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch)
+                                 { return !std::isspace(ch); })
                         .base(),
                     s.end());
         };
@@ -51,7 +56,7 @@ Config::Config(const std::string& configFile)
 
         auto pos = line.find('=');
         if (pos == std::string::npos)
-            continue;  // skip malformed lines
+            continue; // skip malformed lines
 
         std::string key = line.substr(0, pos);
         std::string value = line.substr(pos + 1);
@@ -77,7 +82,8 @@ Config::Config(const std::string& configFile)
         configMap_["log_file"] = "server.log";
 }
 
-bool Config::loadFromFile(const std::string& filename) {
+bool Config::loadFromFile(const std::string &filename)
+{
     std::ifstream ifs(filename);
     if (!ifs)
         return false;
@@ -85,18 +91,21 @@ bool Config::loadFromFile(const std::string& filename) {
     std::map<std::string, std::string> tmp;
     std::string line;
 
-    auto ltrim_fn = [](std::string& s) {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                        [](unsigned char ch) { return !std::isspace(ch); }));
+    auto ltrim_fn = [](std::string &s)
+    {
+        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch)
+                                        { return !std::isspace(ch); }));
     };
-    auto rtrim_fn = [](std::string& s) {
-        s.erase(
-            std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); })
-                .base(),
-            s.end());
+    auto rtrim_fn = [](std::string &s)
+    {
+        s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch)
+                             { return !std::isspace(ch); })
+                    .base(),
+                s.end());
     };
 
-    while (std::getline(ifs, line)) {
+    while (std::getline(ifs, line))
+    {
         ltrim_fn(line);
         rtrim_fn(line);
         if (line.empty() || line[0] == '#')
@@ -125,7 +134,8 @@ bool Config::loadFromFile(const std::string& filename) {
     return true;
 }
 
-void Config::setDefaults() {
+void Config::setDefaults()
+{
     std::lock_guard<std::mutex> lock(mutex_);
     if (configMap_.find("server_port") == configMap_.end())
         configMap_["server_port"] = "8554";
@@ -149,7 +159,8 @@ void Config::setDefaults() {
         configMap_["debug_mode"] = "false";
 }
 
-void Config::printConfig() const {
+void Config::printConfig() const
+{
     // Copy snapshot under lock to minimize time holding mutex
     std::map<std::string, std::string> snapshot;
     {
@@ -159,24 +170,30 @@ void Config::printConfig() const {
 
     // Print in file-like format: comment line then key=value lines
     std::cout << "# Configuration (" << configFilePath_ << ")\n";
-    for (const auto& p : snapshot) {
+    for (const auto &p : snapshot)
+    {
         std::cout << p.first << "=" << p.second << '\n';
     }
 }
 
-int Config::getInt(const std::string& key, int defaultValue) const {
+int Config::getInt(const std::string &key, int defaultValue) const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = configMap_.find(key);
     if (it == configMap_.end())
         return defaultValue;
-    try {
+    try
+    {
         return std::stoi(it->second);
-    } catch (...) {
+    }
+    catch (...)
+    {
         return defaultValue;
     }
 }
 
-std::string Config::getString(const std::string& key, const std::string& defaultValue) const {
+std::string Config::getString(const std::string &key, const std::string &defaultValue) const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = configMap_.find(key);
     if (it == configMap_.end())
@@ -184,7 +201,8 @@ std::string Config::getString(const std::string& key, const std::string& default
     return it->second;
 }
 
-bool Config::getBool(const std::string& key, bool defaultValue) const {
+bool Config::getBool(const std::string &key, bool defaultValue) const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = configMap_.find(key);
     if (it == configMap_.end())
@@ -192,7 +210,8 @@ bool Config::getBool(const std::string& key, bool defaultValue) const {
 
     std::string v = it->second;
     // to lower
-    std::transform(v.begin(), v.end(), v.begin(), [](unsigned char c) { return std::tolower(c); });
+    std::transform(v.begin(), v.end(), v.begin(), [](unsigned char c)
+                   { return std::tolower(c); });
     if (v == "true" || v == "1" || v == "yes" || v == "on")
         return true;
     if (v == "false" || v == "0" || v == "no" || v == "off")
@@ -200,23 +219,29 @@ bool Config::getBool(const std::string& key, bool defaultValue) const {
     return defaultValue;
 }
 
-double Config::getDouble(const std::string& key, double defaultValue) const {
+double Config::getDouble(const std::string &key, double defaultValue) const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = configMap_.find(key);
     if (it == configMap_.end())
         return defaultValue;
-    try {
+    try
+    {
         return std::stod(it->second);
-    } catch (...) {
+    }
+    catch (...)
+    {
         return defaultValue;
     }
 }
 
-bool Config::hasKey(const std::string& key) const {
+bool Config::hasKey(const std::string &key) const
+{
     std::lock_guard<std::mutex> lock(mutex_);
     return configMap_.find(key) != configMap_.end();
 }
 
-void Config::dump() const {
+void Config::dump() const
+{
     printConfig();
 }

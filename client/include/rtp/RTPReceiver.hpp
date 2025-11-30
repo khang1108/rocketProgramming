@@ -63,6 +63,13 @@ public:
      */
     explicit RTPReceiver(int rtpPort);
 
+    /** 
+     * @brief Constructor
+     * @param rtpPort Local UDP port for receiving (e.g., 25000)
+     * @param frameReassembler Pointer to frame reassembler (không own)
+     */
+    RTPReceiver(int rtpPort, FrameReassembler* frameReassembler);
+
     ~RTPReceiver();
 
     /**

@@ -71,3 +71,4 @@ obj/
 *.lib
 
 .vscode/
+compile_commands.json

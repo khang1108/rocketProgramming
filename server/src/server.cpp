@@ -1,8 +1,10 @@
 /*
  * SERVER MAIN - Entry Point
  *
+ *
  * Usage: ./server <port>
  * Example: ./server 8554
+ *
  *
  * Responsibilities:
  * 1. Parse command line arguments
@@ -37,7 +39,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        int port = std::stoi(argv[1]);
+    int port = std::stoi(argv[1]);
 
         if (port < 1024 || port > 65535) {
             std::cerr << "Error: You should choose the port between 1024 and 65535" << std::endl;
@@ -73,5 +75,5 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    return 0;
+  return 0;
 }
