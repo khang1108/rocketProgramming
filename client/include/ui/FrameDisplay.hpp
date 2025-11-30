@@ -56,7 +56,7 @@ public:
      * @param title Window title
      */
     FrameDisplay(int width = 640, int height = 480,
-                const std::string& title = "RTSP Client");
+                const char* title = "RTSP Client");
 
     ~FrameDisplay();
 

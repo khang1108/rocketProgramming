@@ -13,15 +13,16 @@
  * @enum LogLevel
  * @brief Các mức độ logging
  */
-enum class LogLevel {
+enum class LogLevel
+{
 // Avoid accidental macro collision with a global DEBUG macro
 #ifdef DEBUG
 #undef DEBUG
 #endif
-    DEBUG = 0,  ///< Chi tiết debug
-    INFO = 1,   ///< Thông tin chung (server started, client connected)
-    WARN = 2,   ///< Cảnh báo (timeout, retry)
-    ERROR = 3   ///< Lỗi nghiêm trọng (connection failed, file not found)
+    DEBUG = 0, ///< Chi tiết debug
+    INFO = 1,  ///< Thông tin chung (server started, client connected)
+    WARN = 2,  ///< Cảnh báo (timeout, retry)
+    ERROR = 3  ///< Lỗi nghiêm trọng (connection failed, file not found)
 };
 
 /**
@@ -166,5 +167,4 @@ class Logger : public Singleton<Logger> {
  * @param msg Message string
  */
 #define LOG_ERROR(msg) Logger::getInstance().log(LogLevel::ERROR, msg)
-#define LOG_DEBUG(msg) Logger::getInstance().log(LogLevel::DEBUG, msg)
 #endif
