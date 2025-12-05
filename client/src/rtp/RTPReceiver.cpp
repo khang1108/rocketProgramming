@@ -10,9 +10,10 @@
 // #include "network/SocketException.hpp"
 
 RTPReceiver::RTPReceiver(int rtpPort)
-    : socket_(nullptr),
-        rtpPort_(rtpPort),
+    : 
         frameReassembler_(nullptr),
+        socket_(nullptr),
+        rtpPort_(rtpPort),
         running_(false),
         packetReceived_(0),
         packetLost_(0),
@@ -31,8 +32,9 @@ RTPReceiver::RTPReceiver(int rtpPort)
 }
 
 RTPReceiver::RTPReceiver(int rtpPort, FrameReassembler* frameReassembler)
-    : rtpPort_(rtpPort),
-        frameReassembler_(frameReassembler), 
+    : 
+        frameReassembler_(frameReassembler),
+        rtpPort_(rtpPort),
         running_(false),
         packetReceived_(0),
         packetLost_(0),

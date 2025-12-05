@@ -1,5 +1,5 @@
-#ifndef SERVER_RTP_RTPPACKET_HPP
-#define SERVER_RTP_RTPPACKET_HPP
+#ifndef COMMON_RTP_PACKET_HPP
+#define COMMON_RTP_PACKET_HPP
 
 #include <array>
 #include <exception>

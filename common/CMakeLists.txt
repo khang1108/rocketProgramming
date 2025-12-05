@@ -104,3 +104,9 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 message(STATUS "Common library: ${COMMON_TARGET}")
 message(STATUS "Common sources: ${CMAKE_CURRENT_SOURCE_DIR}/src")
 message(STATUS "Common headers: ${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+# Add RTP sources to common_lib
+file(GLOB_RECURSE COMMON_RTP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/rtp/*.cpp"
+)
+target_sources(common_lib PRIVATE ${COMMON_RTP_SOURCES})
