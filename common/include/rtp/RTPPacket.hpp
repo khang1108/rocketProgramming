@@ -110,6 +110,8 @@ class RTPPacket {
      */
     void encode();
 
+    void encode(int frameNbr, const uint8_t* data, int dataSize);
+
     /**
      * @brief Decode raw packet bytes into fields
      * @param packet Raw packet bytes (header + payload)

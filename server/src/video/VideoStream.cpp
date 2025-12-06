@@ -24,27 +24,30 @@ std::vector<uint8_t> VideoStream::nextFrame() {
     if (!hasMoreFrames()) {
         throw std::runtime_error("ERROR: Khong con frame de doc");
     }
-    // Đọc 5 bytes header chứa kích thước frame
-    char header[5];
+    // Đọc 5 bytes header chứa kích thước frame (ASCII format)
+    char header[6];  // 5 bytes + null terminator
     videoFile_.read(header, 5);
+    header[5] = '\0';  // Null terminate for string conversion
 
     // Kiểm tra xem có đủ 5 bytes không
     if (videoFile_.gcount() != 5) {
         throw std::runtime_error("ERROR: Khong doc duoc header frame");
     }
 
-    // Chuyển đổi 5 byte header thành số nguyên (kích thước frame)
-    // Phải ép kiểu sang unsigned char để tránh lỗi số âm khi dịch bit
-    uint64_t frameLength = 0;
-    frameLength |= (static_cast<uint64_t>(static_cast<unsigned char>(header[0])) << 32);
-    frameLength |= (static_cast<uint64_t>(static_cast<unsigned char>(header[1])) << 24);
-    frameLength |= (static_cast<uint64_t>(static_cast<unsigned char>(header[2])) << 16);
-    frameLength |= (static_cast<uint64_t>(static_cast<unsigned char>(header[3])) << 8);
-    frameLength |= (static_cast<uint64_t>(static_cast<unsigned char>(header[4])));
+    // Chuyển đổi 5 byte ASCII header thành số nguyên (kích thước frame)
+    // Format: "06014" -> 6014 bytes
+    int frameLength = 0;
+    try {
+        frameLength = std::stoi(header);
+    } catch (const std::exception& e) {
+        throw std::runtime_error("ERROR: Khong the parse frame length tu header: " +
+                                 std::string(header));
+    }
 
-    // Nếu frameLength quá lớn (> 50MB), có thể file bị lỗi hoặc parse sai
-    if (frameLength > 50 * 1024 * 1024) {
-        throw std::runtime_error("Loi: Kich thuoc frame bat thuong (qua lon)");
+    // Kiểm tra frameLength hợp lệ
+    if (frameLength <= 0 || frameLength > 100000) {  // Max ~100KB per frame for MJPEG
+        throw std::runtime_error("ERROR: Frame length khong hop le: " +
+                                 std::to_string(frameLength));
     }
 
     // Đọc dữ liệu ảnh (Payload) dựa trên kích thước vừa tính

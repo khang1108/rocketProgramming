@@ -1,7 +1,45 @@
 #include "rtp/RTPPacket.hpp"
 #include <chrono>   // For getCurrentTimestamp
 #include <cstring>  // For memcpy
+#include <memory>
 
+void RTPPacket::encode(int frameNbr, const uint8_t* data, int dataSize)
+{
+    header_[0] = 0x80;
+
+    header_[1] = 0x1A;
+
+    header_[2] = (frameNbr >> 8) & 0xFF;
+    header_[3] = frameNbr & 0xFF;
+
+    uint32_t timestamp = static_cast<uint32_t>(
+        std::chrono::system_clock::now().time_since_epoch().count()
+    );
+
+    header_[4] = (timestamp >> 24) & 0xFF;
+    header_[5] = (timestamp >> 16) & 0xFF;
+    header_[6] = (timestamp >> 8) & 0xFF;
+    header_[7] = timestamp & 0xFF;
+
+    uint32_t ssrc = 0x17122006;
+    header_[8] = (ssrc >> 24) & 0xFF;
+    header_[9] = (ssrc >> 16) & 0xFF;
+    header_[10] = (ssrc >> 8) & 0xFF;
+    header_[11] = ssrc & 0xFF;
+
+    payload_.resize(dataSize);
+    std::memcpy(payload_.data(), data, dataSize);
+
+    sequenceNumber_ = static_cast<uint16_t>(frameNbr);
+    timestamp_ = timestamp;
+    ssrc_ = ssrc;
+    version_ = 2;
+    padding_ = 0;
+    extension_ = 0;
+    cc_ = 0;
+    marker_ = 0;
+    payloadType_ = MJPEG_TYPE;
+}
 // ENCODING (ĐÓNG GÓI)
 //  Nhiệm vụ: Chuyển các biến rời rạc (int, boolean) thành mảng byte thô để gửi
 //  qua mạng.
