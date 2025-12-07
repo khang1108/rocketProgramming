@@ -1,9 +1,9 @@
 #ifndef SERVER_RTP_ENCODINGSTRATEGY_HPP
 #define SERVER_RTP_ENCODINGSTRATEGY_HPP
 
-#include "../../common/include/patterns/Strategy.hpp"
-#include "RTPPacket.hpp"
-#include "RTPPacketBuilder.hpp"
+#include "patterns/Strategy.hpp"
+#include "rtp/RTPPacket.hpp"
+#include "rtp/RTPPacketBuilder.hpp"
 #include <memory>
 #include <string>
 #include <vector>

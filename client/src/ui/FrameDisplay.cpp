@@ -15,7 +15,12 @@ FrameDisplay::FrameDisplay(int width, int height,
                             width_(width),
                             height_(height),
                             windowTitle_(title),
-                            running_(false){}
+                            running_(false),
+                            fps_(0.0),
+                            frameCount_(0),
+                            fpsStartTime_(std::chrono::steady_clock::now()),
+                            lastFrameTime_(std::chrono::steady_clock::now())
+                            {}
 
 FrameDisplay::~FrameDisplay(){
     shutdown();

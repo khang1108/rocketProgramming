@@ -122,3 +122,32 @@ help:
 	@echo "  $(TEST_TIMER)"
 	@echo "  $(TEST_RTSP)"
 
+# ... existing content ...
+
+# Add VideoStream and EncodingStrategy sources
+VIDEO_STREAM_SRC = ../../server/src/video/VideoStream.cpp
+ENCODING_STRATEGY_SRC = ../../server/src/rtp/EncodingStrategy.cpp
+
+# New test target
+TEST_SERVER_SIM = test_server_simulation
+
+all: $(BUILD_DIR) $(TEST_RTP_PIPELINE) $(TEST_SERVER_SIM)
+
+# Test Server Simulation
+$(TEST_SERVER_SIM): $(BUILD_DIR)/test_server_simulation.o $(BUILD_DIR)/FrameBuffer.o \
+                    $(BUILD_DIR)/RTPPacket.o $(BUILD_DIR)/FrameReassembler.o \
+                    $(BUILD_DIR)/Logger.o $(BUILD_DIR)/VideoStream.o \
+                    $(BUILD_DIR)/EncodingStrategy.o
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+$(BUILD_DIR)/test_server_simulation.o: test_server_simulation.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/VideoStream.o: $(VIDEO_STREAM_SRC)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/EncodingStrategy.o: $(ENCODING_STRATEGY_SRC)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR) $(TEST_RTP_PIPELINE) $(TEST_SERVER_SIM)

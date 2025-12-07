@@ -1,4 +1,4 @@
-#include "Socket.hpp"
+#include "network/Socket.hpp"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -250,18 +250,18 @@ int Socket::send(const uint8_t* data, size_t length) {
         int bytes = ::send(sockfd_, (const char*)(data + totalSent), length - totalSent, 0);
 
         if (bytes == SOCKET_ERROR) {
-#ifdef _WIN32
+        #ifdef _WIN32
             int error = WSAGetLastError();
             if (error == WSAETIMEDOUT || error == WSAEWOULDBLOCK) {
                 throw SocketTimeout("send() timed out");
             }
             throw SocketException("send() failed: " + std::to_string(error));
-#else
+        #else
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 throw SocketTimeout("send() timed out");
             }
             throw SocketException("send() failed: " + std::string(strerror(errno)));
-#endif
+        #endif
         }
 
         if (bytes == 0) {

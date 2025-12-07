@@ -1,4 +1,6 @@
-#include "ServerWorker.hpp"
+#include "network/ServerWorker.hpp"
+#include "utils/Logger.hpp"
+#include <random>
 
 #ifdef ERROR
 #undef ERROR
@@ -9,35 +11,47 @@ void ServerWorker::handleRtspRequests()
     char buffer[4096];
 
     while (running_) {
-        //Ép kiểu 'char*' sang 'uint8_t*'
-        int bytesRead = socket_->receive(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
+        try{
+            if(!socket_){
+                LOG_INFO("Worker " + std::to_string(clientId_) + ": socket closed");
+                break;
+            }
+            //Ép kiểu 'char*' sang 'uint8_t*'
+            int bytesRead = socket_->receive(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
 
-        if (bytesRead <= 0) {
-            LOG_INFO("Client " + std::to_string(clientId_) + " disconnected.");
-            break;
-        }
-
-        std::string rawRequest(buffer, bytesRead);
-        
-        try {
-            auto request = RTSPMessage::parseRequest(rawRequest);
-            std::string response;
-
-            if (request.method == "SETUP") response = handleSetup(request);
-            else if (request.method == "PLAY") response = handlePlay(request);
-            else if (request.method == "PAUSE") response = handlePause(request);
-            else if (request.method == "TEARDOWN") {
-                response = handleTeardown(request);
-                running_ = false; 
-            } else {
-                response = RTSPMessage::buildResponse(400, "Bad Request", request.cseq);
+            if (bytesRead <= 0) {
+                LOG_INFO("Client " + std::to_string(clientId_) + " disconnected.");
+                break;
             }
 
-            //Ép kiểu chuỗi (char*) sang byte (uint8_t*) để gửi đi
-            socket_->send(reinterpret_cast<const uint8_t*>(response.c_str()), response.length());
+            std::string rawRequest(buffer, bytesRead);
+            
+            try {
+                auto request = RTSPMessage::parseRequest(rawRequest);
+                std::string response;
 
-        } catch (const std::exception& e) {
-            LOG_ERROR("RTSP Handling Error: " + std::string(e.what()));
+                if (request.method == "SETUP") response = handleSetup(request);
+                else if (request.method == "PLAY") response = handlePlay(request);
+                else if (request.method == "PAUSE") response = handlePause(request);
+                else if (request.method == "TEARDOWN") {
+                    response = handleTeardown(request);
+                    running_ = false; 
+                } else {
+                    response = RTSPMessage::buildResponse(400, "Bad Request", request.cseq);
+                }
+
+                //Ép kiểu chuỗi (char*) sang byte (uint8_t*) để gửi đi
+                socket_->send(reinterpret_cast<const uint8_t*>(response.c_str()), response.length());
+
+            } catch (const std::exception& e) {
+                LOG_ERROR("RTSP Handling Error: " + std::string(e.what()));
+            }
+        }catch(const SocketException& e){
+            LOG_INFO("Worker " + std::to_string(clientId_) + ": socket closed");
+            break;
+        }catch(const std::exception& e){
+            LOG_ERROR("Worker " + std::to_string(clientId_) + " error " + e.what());
+            break;
         }
     }
 }
@@ -167,14 +181,15 @@ bool ServerWorker::validateSessionId(const RTSPMessage::Request& request) const 
     return false;
 }
 
-ServerWorker::ServerWorker(int clientId, std::unique_ptr<Socket> rtspSocket) : 
-        clientId_(clientId),
-        socket_(std::move(rtspSocket)),
-        state_(State::INIT),
-        running_(false),
-        streaming_(false),
-        sequenceNumber_(0),
-        timestamp_(0)
+ServerWorker::ServerWorker(int clientId, std::unique_ptr<Socket> rtspSocket) :
+    clientId_(clientId),
+    socket_(std::move(rtspSocket)),
+    state_(State::INIT),
+    running_(true),
+    sequenceNumber_(0),      // ← Đưa lên trước
+    timestamp_(0),           // ← Đúng thứ tự
+    ssrc_(0),
+    streaming_(false)  
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -207,6 +222,11 @@ void ServerWorker::run()
 
 void ServerWorker::stop() 
 {
+    static std::atomic<bool> stopCalled{false};
+    if(stopCalled.exchange(true)){
+        return;
+    }
+
     running_ = false;
     streaming_ = false;
 
@@ -215,6 +235,11 @@ void ServerWorker::stop()
     }
 
     if (socket_) {
-        socket_->close();
+        try{
+            socket_->close();
+        } catch(...){
+
+        }
+        socket_.reset();
     }
 }

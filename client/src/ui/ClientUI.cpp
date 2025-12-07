@@ -18,6 +18,8 @@
                         int x, int y,
                         int flags,
                         void* userdata){
+        (void)flags;
+        (void)userdata;
         if(event == cv::EVENT_MOUSEMOVE){
             for(size_t i = 0; i < g_buttons.size(); i++){
                 g_buttons[i].hovered = g_buttons[i].rect.contains(cv::Point(x, y));
@@ -35,31 +37,31 @@
 
     cv::Mat createControlPanel(int width, int height, const std::string& status)
     {
-        cv::Mat panel(height, width, CV_8UC3, cv::Scalar(240, 240, 240));
+        cv::Mat panel(height, width, CV_8UC3, cv::Scalar(220, 220, 240));
 
         for(const auto& btn: g_buttons){
             cv::Scalar btnColor = btn.enabled ? (btn.hovered ? btn.hoverColor : btn.color) : cv::Scalar(180, 180, 180);
 
             cv::rectangle(panel, btn.rect, btnColor, -1);
-            cv::rectangle(panel, btn.rect, cv::Scalar(100, 100, 100), 2);
+            cv::rectangle(panel, btn.rect, cv::Scalar(80, 80, 80), 2, cv::LINE_AA);
 
             int baseline = 0;
-            cv::Size textSize = cv::getTextSize(btn.label, cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 0.6, 2, &baseline);
+            cv::Size textSize = cv::getTextSize(btn.label, cv::FONT_HERSHEY_DUPLEX, 0.4, 2, &baseline);
             cv::Point textOrg(
                 btn.rect.x + (btn.rect.width - textSize.width) / 2,
-                btn.rect.y + (btn.rect.height - textSize.height) / 2
+                btn.rect.y + (btn.rect.height - textSize.height) / 2 - 3
             );
 
-            cv::putText(panel, btn.label, textOrg, cv::FONT_HERSHEY_SCRIPT_SIMPLEX,
-                        0.6, cv::Scalar(255, 255, 255), 2);
+            cv::putText(panel, btn.label, textOrg, cv::FONT_HERSHEY_DUPLEX,
+                        0.4, cv::Scalar(40, 40, 40), 2, cv::LINE_AA);
             
             cv::rectangle(panel, cv::Rect(10, height - 40, width - 20, 30),
                         cv::Scalar(50, 50, 50), -1);
-            cv::putText(panel, status, cv::Point(15, height - 15),
-                        cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
 
-            return panel;
+            cv::putText(panel, status, cv::Point(15, height - 15),
+                        cv::FONT_HERSHEY_DUPLEX, 0.4, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
         }
+        return panel;
     }
 #endif
 

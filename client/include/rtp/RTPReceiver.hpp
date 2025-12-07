@@ -8,6 +8,8 @@
 #include "network/Socket.hpp"
 #include "rtp/RTPPacket.hpp"
 
+class FrameReassembler; 
+
 /**
  * @class RTPReceiver
  * @brief Receives RTP packets from server via UDP
@@ -25,6 +27,7 @@ public:
     using PacketCallback = std::function<void(const RTPPacket& packet)>;
 private:
     std::unique_ptr<Socket> socket_;
+    FrameReassembler* frameReassembler_;  
     int rtpPort_;
 
     std::thread receiverThread_;

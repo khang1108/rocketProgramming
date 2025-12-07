@@ -102,3 +102,47 @@ help:
 # Verbose output
 .SILENT: help
 
+# Test targets for RTSPServer and ServerWorker
+test_rtsp_server: test_rtsp_server.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) \
+		test_rtsp_server.cpp \
+		../src/network/RTSPServer.cpp \
+		../src/network/ServerWorker.cpp \
+		../src/video/VideoStream.cpp \
+		../src/rtp/EncodingStrategy.cpp \
+		../../common/src/network/Socket.cpp \
+		../../common/src/network/RTSPMessage.cpp \
+		../../common/src/rtp/RTPPacket.cpp \
+		../../common/src/rtp/RTPPacketBuilder.cpp \
+		../../common/src/utils/Logger.cpp \
+		../../common/src/utils/Config.cpp \
+		../../common/src/utils/Timer.cpp \
+		-o test_rtsp_server $(LIBS)
+
+test_server_worker: test_server_worker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) \
+		test_server_worker.cpp \
+		../src/network/ServerWorker.cpp \
+		../src/video/VideoStream.cpp \
+		../src/rtp/EncodingStrategy.cpp \
+		../../common/src/network/Socket.cpp \
+		../../common/src/network/RTSPMessage.cpp \
+		../../common/src/rtp/RTPPacket.cpp \
+		../../common/src/rtp/RTPPacketBuilder.cpp \
+		../../common/src/utils/Logger.cpp \
+		../../common/src/utils/Config.cpp \
+		../../common/src/utils/Timer.cpp \
+		-o test_server_worker $(LDFLAGS)
+
+# Run both server tests
+test_server: test_rtsp_server test_server_worker
+	@echo "\n========================================"
+	@echo "Running RTSPServer tests..."
+	@echo "========================================"
+	./test_rtsp_server
+	@echo "\n========================================"
+	@echo "Running ServerWorker tests..."
+	@echo "========================================"
+	./test_server_worker
+
+.PHONY: test_rtsp_server test_server_worker test_server
