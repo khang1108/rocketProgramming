@@ -11,8 +11,8 @@
 
 RTPReceiver::RTPReceiver(int rtpPort)
     : 
-        frameReassembler_(nullptr),
         socket_(nullptr),
+        frameReassembler_(nullptr),
         rtpPort_(rtpPort),
         running_(false),
         packetReceived_(0),

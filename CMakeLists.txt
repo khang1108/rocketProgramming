@@ -6,6 +6,12 @@ project(RocketProgramming
     LANGUAGES CXX
 )
 
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia MultimediaWidgets)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
 # ==============================================================================
 # Project Configuration
 # ==============================================================================
@@ -14,6 +20,14 @@ project(RocketProgramming
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+include_directories(
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_SOURCE_DIR}/client/include
+    ${CMAKE_SOURCE_DIR}/server/include
+    ${Qt6Widgets_INCLUDE_DIRS}
+    ${Qt6Network_INCLUDE_DIRS}
+)
 
 # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -68,7 +82,7 @@ find_package(Threads REQUIRED)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ==============================================================================
 # Subdirectories
 # ==============================================================================
