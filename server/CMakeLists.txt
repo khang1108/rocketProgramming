@@ -52,8 +52,10 @@ target_include_directories(${SERVER_TARGET}
 
 target_link_libraries(${SERVER_TARGET}
     PRIVATE
-        common_lib
+        common
         Threads::Threads
+        Qt6::Core
+        Qt6::Network
 )
 
 # ==============================================================================

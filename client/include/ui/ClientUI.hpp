@@ -1,122 +1,96 @@
-#ifndef CLIENT_UI_CLIENTUI_HPP
-#define CLIENT_UI_CLIENTUI_HPP
+#ifndef CLIENT_UI_HPP
+#define CLIENT_UI_HPP
 
-#include <opencv4/opencv2/opencv.hpp>
-
-#include <vector>
+#include <QWidget>
+#include <QSlider>
+#include <QProgressBar>
 #include <memory>
 #include <string>
-#include <functional>
+#include <chrono>
 
-#include "network/RTSPClient.hpp"
-#include "rtp/RTPReceiver.hpp"
-#include "rtp/FrameReassembler.hpp"
 #include "buffer/FrameBuffer.hpp"
-#include "ui/FrameDisplay.hpp"
+#include "network/RTSPClient.hpp"
+#include "rtp/FrameReassembler.hpp"
+#include "rtp/RTPReceiver.hpp"
+#include "buffer/BufferSlider.hpp"
 
-#ifdef USE_OPENCV
-    #include <opencv4/opencv2/opencv.hpp>   
-    
-    /**
-     * @brief Button structure for GUI
-     */
-    struct Button
-    {
-        cv::Rect rect;
-        std::string label;
-        cv::Scalar color;
-        cv::Scalar hoverColor;
-        bool enabled;
-        bool hovered; 
+class QLabel;
+class QPushButton;
+class QTimer;
+
+class ClientUI : public QWidget {
+    Q_OBJECT
+
+  public:
+    enum class State {
+        INIT,    ///< Initial state, can only SETUP
+        READY,   ///< After SETUP, can PLAY or TEARDOWN
+        PLAYING  ///< After PLAY, can PAUSE or TEARDOWN
     };
 
-    void mouseCallback(int event, int x, int y, int flags, void* userdata);
-    cv::Mat createControlPanel(int width, int height, const std::string& status);
-#endif
+    ClientUI(const std::string& serverIP, int serverPort, const std::string& videoFile,
+            int clientRTPPort, QWidget* parent = nullptr);
+    ~ClientUI();
 
-/**
- * @class ClientUI
- * @brief Main UI controller for RTSP client application
- * 
- * Manages:
- * - UI window with control buttons
- * - Video display area
- * - RTSP client connection
- * - RTP receiver and frame buffer
- * - Display thread
- */
-class ClientUI
-{
-private:
-    std::unique_ptr<RTSPClient> rtspClient_;
-    std::unique_ptr<RTPReceiver> rtpReceiver_;
-    std::unique_ptr<FrameReassembler> frameReassembler_;
-    std::unique_ptr<FrameBuffer> frameBuffer_;
-    std::unique_ptr<FrameDisplay> frameDisplay_;
+    bool initialize();
+  private slots:
+    void onSetupClicked();
+    void onPlayClicked();
+    void onPauseClicked();
+    void onTeardownClicked();
+
+    void updateStatus();
+    void updateFrame();
+
+    void onTimelineSliderPressed();
+    void onTimelineSliderReleased();
+    void onTimelineValueChanged(int value);
+
+  private:
+    void updateButtonStates();
+    void updateTimeline();
+    void updatePrebufferIndicator();
+    QString formatTime(int seconds) const;
 
     std::string serverIP_;
     int serverPort_;
     std::string videoFile_;
     int clientRTPPort_;
-
     bool initialized_;
+    State state_;  ///< Current RTSP session state
 
-public:
-    /**
-     * @brief Constructor
-     * @param serverIP Server IP address
-     * @param serverPort Server RTSP port
-     * @param videoFile Video filename on server
-     * @param clientRTPPort Local RTP port
-     */
-    ClientUI(const std::string& serverIP,
-            int serverPort,
-            const std::string& videoFile,
-            int clientRTPPort = 25000);
+    std::unique_ptr<RTSPClient> rtspClient_;
+    std::unique_ptr<FrameBuffer> frameBuffer_;
+    std::unique_ptr<FrameReassembler> frameReassembler_;
+    std::unique_ptr<RTPReceiver> rtpReceiver_;
 
-    ~ClientUI();
+    QLabel* videoLabel_;
+    QLabel* statusLabel_;
+    QPushButton* setupButton_;
+    QPushButton* playButton_;
+    QPushButton* pauseButton_;
+    QPushButton* teardownButton_;
+    QTimer* statusTimer_;
+    QTimer* frameTimer_;
 
-    /**
-    * @brief Initialize UI and components
-    * @return true if successful
-    */
-    bool initialize();
+    BufferedSlider* timelineSlider_;
+    QLabel* currentTimeLabel_;
+    QLabel* totalTimeLabel_;
+    QProgressBar* prebufferBar_;
+    QLabel* prebufferLabel_;
 
-    /**
-    * @brief Run main UI loop (blocking)
-    *
-    * @details
-    * - Creates window with buttons
-    * - Handles button clicks
-    * - Updates display
-    * - Returns when window closed
-    */
-    void run();
+    bool isSeekingTimeline_;
+    int totalFrames_;
+    int currentFrame_;
+    int bufferedFrame_;
+    std::chrono::steady_clock::time_point playStartTime_;
 
-    /**
-    * @brief Handle SETUP button click
-    */
-    void onSetupButton();
+    static constexpr size_t PREBUFFER_FRAMES = 10;
+    bool prebufferReady_;
+    int framesThisSecond_;
+    int fps_;
+    std::chrono::steady_clock::time_point fpsStartTime_;
 
-    /**
-    * @brief Handle PLAY button click
-    */
-    void onPlayButton();
-
-    /**
-    * @brief Handle PAUSE button click
-    */
-    void onPauseButton();
-
-    /**
-    * @brief Handle TEARDOWN button click
-    */
-    void onTeardownButton();
-
-    /**
-    * @brief Get current status string
-    * @return Status text (e.g., "PLAYING - FPS: 25 - LOSS: 0.5%")
-    */
-    std::string getStatusString() const;
+    QString makeStatusString() const;
 };
 #endif

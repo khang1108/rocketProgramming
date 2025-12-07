@@ -1,33 +1,49 @@
+# client/CMakeLists.txt
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+find_package(Qt6 REQUIRED COMPONENTS 
+    Widgets 
+    Core
+    Network
+    Multimedia
+    MultimediaWidgets
+)
 # ==============================================================================
-# RTSP/RTP Client Executable
+# Client Sources
 # ==============================================================================
 
-# Define the client executable
-set(CLIENT_TARGET rtsp_client)
-
-# ==============================================================================
-# Source Files
-# ==============================================================================
-
-# Collect all source files
-file(GLOB_RECURSE CLIENT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+set(CLIENT_SOURCES
+    src/client.cpp
+    src/ui/ClientUI.cpp
+    src/ui/FrameDisplay.cpp
+    src/network/RTSPClient.cpp
+    src/rtp/RTPReceiver.cpp
+    src/rtp/FrameReassembler.cpp
+    src/buffer/FrameBuffer.cpp
+    src/buffer/BufferSlider.cpp
 )
 
-# Collect all header files
-file(GLOB_RECURSE CLIENT_HEADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+set(CLIENT_HEADERS
+    ${CMAKE_SOURCE_DIR}/client/include/ui/ClientUI.hpp
+    ${CMAKE_SOURCE_DIR}/client/include/ui/FrameDisplay.hpp
+    ${CMAKE_SOURCE_DIR}/client/include/buffer/BufferSlider.hpp
 )
 
 # ==============================================================================
-# Create Executable
+# Client Executable
 # ==============================================================================
 
-add_executable(${CLIENT_TARGET} ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+add_executable(rtsp_client 
+    ${CLIENT_SOURCES}
+    ${CLIENT_HEADERS}  # ✅ Include headers for AUTOMOC
+)
 
-# Set target properties
-set_target_properties(${CLIENT_TARGET} PROPERTIES
+set_target_properties(rtsp_client PROPERTIES
+    AUTOMOC ON  
     OUTPUT_NAME "client"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
@@ -36,104 +52,29 @@ set_target_properties(${CLIENT_TARGET} PROPERTIES
 # Include Directories
 # ==============================================================================
 
-target_include_directories(${CLIENT_TARGET}
+target_include_directories(rtsp_client PRIVATE
+    ${CMAKE_SOURCE_DIR}/client/include
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_BINARY_DIR}/client/rtsp_client_autogen/include
+)
+
+# ==============================================================================
+# Link Libraries - ✅ THÊM Qt6::Widgets
+# ==============================================================================
+
+target_link_libraries(rtsp_client 
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/buffer
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/network
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/patterns
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/rtp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/state
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/ui
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/utils
+    common                    # Common library
+    Qt6::Core                 # Qt Core
+    Qt6::Widgets              # ✅ THÊM DÒNG NÀY - Qt Widgets (QWidget, QPushButton, QLabel)
+    Qt6::Network              # Qt Network
+    Qt6::Multimedia           # Qt Multimedia
+    Threads::Threads
+    Qt6::MultimediaWidgets
 )
 
 # ==============================================================================
-# Link Libraries
+# Install
 # ==============================================================================
 
-target_link_libraries(${CLIENT_TARGET}
-    PRIVATE
-        common_lib
-        Threads::Threads
-)
-
-# ==============================================================================
-# Optional: OpenCV for Video Display
-# ==============================================================================
-
-find_package(OpenCV QUIET COMPONENTS core imgcodecs highgui)
-
-if(OpenCV_FOUND)
-    message(STATUS "")
-    message(STATUS "========================================")
-    message(STATUS "✓ OpenCV ${OpenCV_VERSION} FOUND")
-    message(STATUS "  Video display: ENABLED")
-    message(STATUS "========================================")
-    message(STATUS "")
-    
-    target_compile_definitions(${CLIENT_TARGET} PRIVATE USE_OPENCV)
-    target_link_libraries(${CLIENT_TARGET} PRIVATE ${OpenCV_LIBS})
-    target_include_directories(${CLIENT_TARGET} PRIVATE ${OpenCV_INCLUDE_DIRS})
-else()
-    message(STATUS "")
-    message(STATUS "========================================")
-    message(WARNING "✗ OpenCV NOT FOUND")
-    message(STATUS "  Video display: DISABLED (terminal mode)")
-    message(STATUS "")
-    message(STATUS "To enable video display, install OpenCV:")
-    message(STATUS "  Ubuntu: sudo apt install libopencv-dev")
-    message(STATUS "  macOS:  brew install opencv")
-    message(STATUS "  Windows: Download from https://opencv.org")
-    message(STATUS "========================================")
-    message(STATUS "")
-endif()
-
-# ==============================================================================
-# Compile Definitions
-# ==============================================================================
-
-# Add compile definitions based on build type
-target_compile_definitions(${CLIENT_TARGET}
-    PRIVATE
-        $<$<CONFIG:Debug>:DEBUG_MODE>
-        $<$<CONFIG:Release>:RELEASE_MODE>
-)
-
-# ==============================================================================
-# Post-build Commands
-# ==============================================================================
-
-# Copy config files to build directory if they exist
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config")
-    add_custom_command(TARGET ${CLIENT_TARGET} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:${CLIENT_TARGET}>/config"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/config"
-            "$<TARGET_FILE_DIR:${CLIENT_TARGET}>/config"
-        COMMENT "Copying client configuration files..."
-    )
-endif()
-
-# ==============================================================================
-# Installation
-# ==============================================================================
-
-install(TARGETS ${CLIENT_TARGET}
-    RUNTIME DESTINATION bin
-)
-
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config")
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config/"
-        DESTINATION bin/config
-    )
-endif()
-
-# ==============================================================================
-# Build Info
-# ==============================================================================
-
-message(STATUS "Client executable: ${CLIENT_TARGET}")
-message(STATUS "Client sources: ${CMAKE_CURRENT_SOURCE_DIR}/src")
-message(STATUS "Client headers: ${CMAKE_CURRENT_SOURCE_DIR}/include")
+install(TARGETS rtsp_client DESTINATION bin)
