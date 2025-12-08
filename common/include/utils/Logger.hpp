@@ -9,6 +9,10 @@
 #include <string>
 #include "patterns/Singleton.hpp"
 
+#ifdef ERROR
+#undef ERROR
+#endif
+
 /**
  * @enum LogLevel
  * @brief Các mức độ logging
