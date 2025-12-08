@@ -8,6 +8,8 @@
 #include "network/Socket.hpp"
 #include "rtp/RTPPacket.hpp"
 
+class FrameReassembler; 
+
 /**
  * @class RTPReceiver
  * @brief Receives RTP packets from server via UDP
@@ -25,6 +27,7 @@ class RTPReceiver {
 
   private:
     std::unique_ptr<Socket> socket_;
+    FrameReassembler* frameReassembler_;  
     int rtpPort_;
 
     std::thread receiverThread_;
@@ -62,6 +65,13 @@ class RTPReceiver {
      * @param rtpPort Local UDP port for receiving (e.g., 25000)
      */
     explicit RTPReceiver(int rtpPort);
+
+    /** 
+     * @brief Constructor
+     * @param rtpPort Local UDP port for receiving (e.g., 25000)
+     * @param frameReassembler Pointer to frame reassembler (không own)
+     */
+    RTPReceiver(int rtpPort, FrameReassembler* frameReassembler);
 
     ~RTPReceiver();
 

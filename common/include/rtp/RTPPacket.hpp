@@ -1,5 +1,5 @@
-#ifndef SERVER_RTP_RTPPACKET_HPP
-#define SERVER_RTP_RTPPACKET_HPP
+#ifndef COMMON_RTP_PACKET_HPP
+#define COMMON_RTP_PACKET_HPP
 
 #include <array>
 #include <exception>
@@ -109,6 +109,8 @@ class RTPPacket {
      * @note Called automatically by RTPPacketBuilder
      */
     void encode();
+
+    void encode(int frameNbr, const uint8_t* data, int dataSize);
 
     /**
      * @brief Decode raw packet bytes into fields

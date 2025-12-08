@@ -1,6 +1,8 @@
 #ifndef SERVER_PATTERNS_STRATEGY_HPP
 #define SERVER_PATTERNS_STRATEGY_HPP
 
+#include <stdexcept>
+#include <memory>
 /**
  * @file Strategy.hpp
  * @brief Strategy Design Pattern - Interface cho các thuật toán có thể thay thế lẫn nhau

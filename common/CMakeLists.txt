@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # Define the common library
-set(COMMON_TARGET common_lib)
+set(COMMON_TARGET common)
 
 # ==============================================================================
 # Source Files
@@ -41,16 +41,17 @@ target_include_directories(${COMMON_TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include/network
         ${CMAKE_CURRENT_SOURCE_DIR}/include/utils
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/rtp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/rtsp
 )
-
-# ==============================================================================
-# Link Libraries
-# ==============================================================================
 
 target_link_libraries(${COMMON_TARGET}
     PUBLIC
         Threads::Threads
+        Qt6::Core
+        Qt6::Network
 )
+
 
 # Platform-specific libraries
 if(WIN32)
@@ -104,3 +105,9 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 message(STATUS "Common library: ${COMMON_TARGET}")
 message(STATUS "Common sources: ${CMAKE_CURRENT_SOURCE_DIR}/src")
 message(STATUS "Common headers: ${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+# Add RTP sources to common_lib
+file(GLOB_RECURSE COMMON_RTP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/rtp/*.cpp"
+)
+target_sources(common PRIVATE ${COMMON_RTP_SOURCES})

@@ -9,6 +9,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <cstdint>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 typedef int socklen_t;

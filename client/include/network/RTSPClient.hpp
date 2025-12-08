@@ -95,6 +95,8 @@ class RTSPClient {
     int clientRTPPort_;  ///< Local port for receiving RTP
     int serverRTPPort_;  ///< Server RTP port (from SETUP response)
 
+    std::string rtspUri_;
+
     /**
      * @brief Send RTSP request and receive response
      * @param request RTSP request string (complete message)

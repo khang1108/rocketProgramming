@@ -1,0 +1,65 @@
+[2025-11-30 21:58:27] [INFO ] Initializing Client UI ...
+[2025-11-30 21:58:27] [ERROR] Failed to initialize Client UI: FrameReassembler cannot be null
+[2025-11-30 22:01:05] [INFO ] Initializing Client UI ...
+[2025-11-30 22:01:05] [INFO ] RTPReceiver created on port 25000
+[2025-11-30 22:01:06] [INFO ] Client UI initialized successfully
+[2025-11-30 22:01:17] [INFO ] SETUP button clicked
+[2025-11-30 22:01:17] [INFO ] SETUP successful, Session ID: DEMO123456
+[2025-11-30 22:01:27] [INFO ] SETUP button clicked
+[2025-11-30 22:01:27] [ERROR] SETUP Failed
+[2025-11-30 22:01:28] [INFO ] SETUP button clicked
+[2025-11-30 22:01:28] [ERROR] SETUP Failed
+[2025-11-30 22:01:28] [INFO ] SETUP button clicked
+[2025-11-30 22:01:28] [ERROR] SETUP Failed
+[2025-11-30 22:01:31] [INFO ] SETUP button clicked
+[2025-11-30 22:01:31] [ERROR] SETUP Failed
+[2025-11-30 22:01:34] [INFO ] SETUP button clicked
+[2025-11-30 22:01:34] [ERROR] SETUP Failed
+[2025-11-30 22:01:37] [INFO ] SETUP button clicked
+[2025-11-30 22:01:37] [ERROR] SETUP Failed
+[2025-11-30 22:01:39] [INFO ] SETUP button clicked
+[2025-11-30 22:01:39] [ERROR] SETUP Failed
+[2025-11-30 22:01:41] [INFO ] SETUP button clicked
+[2025-11-30 22:01:41] [ERROR] SETUP Failed
+[2025-11-30 22:02:18] [INFO ] TEARDOWN button clicked
+[2025-11-30 22:02:18] [INFO ] TEARDOWN successful
+[2025-11-30 22:07:23] [INFO ] Initializing Client UI ...
+[2025-11-30 22:07:23] [INFO ] RTPReceiver created on port 25000
+[2025-11-30 22:07:24] [INFO ] Client UI initialized successfully
+[2025-11-30 22:07:37] [INFO ] TEARDOWN button clicked
+[2025-11-30 22:07:37] [INFO ] TEARDOWN successful
+[2025-11-30 22:08:07] [INFO ] Initializing Client UI ...
+[2025-11-30 22:08:07] [INFO ] RTPReceiver created on port 25000
+[2025-11-30 22:08:07] [INFO ] Client UI initialized successfully
+[2025-11-30 22:08:13] [INFO ] TEARDOWN button clicked
+[2025-11-30 22:08:13] [INFO ] TEARDOWN successful
+[2025-11-30 22:09:46] [INFO ] Initializing Client UI ...
+[2025-11-30 22:09:46] [INFO ] RTPReceiver created on port 25000
+[2025-11-30 22:09:46] [INFO ] Client UI initialized successfully
+[2025-11-30 22:09:56] [INFO ] TEARDOWN button clicked
+[2025-11-30 22:09:56] [INFO ] TEARDOWN successful
+[2025-12-03 08:06:06] [INFO ] Initializing Client UI ...
+[2025-12-03 08:06:06] [INFO ] RTPReceiver created on port 25000
+[2025-12-03 08:06:06] [INFO ] Client UI initialized successfully
+[2025-12-03 08:06:22] [INFO ] SETUP button clicked
+[2025-12-03 08:06:22] [INFO ] SETUP successful, Session ID: DEMO123456
+[2025-12-03 08:06:22] [INFO ] SETUP button clicked
+[2025-12-03 08:06:22] [ERROR] SETUP Failed
+[2025-12-03 08:06:22] [INFO ] SETUP button clicked
+[2025-12-03 08:06:22] [ERROR] SETUP Failed
+[2025-12-03 08:06:22] [INFO ] SETUP button clicked
+[2025-12-03 08:06:22] [ERROR] SETUP Failed
+[2025-12-03 08:06:23] [INFO ] SETUP button clicked
+[2025-12-03 08:06:23] [ERROR] SETUP Failed
+[2025-12-03 08:06:23] [INFO ] SETUP button clicked
+[2025-12-03 08:06:23] [ERROR] SETUP Failed
+[2025-12-03 08:06:27] [INFO ] SETUP button clicked
+[2025-12-03 08:06:27] [ERROR] SETUP Failed
+[2025-12-03 08:06:27] [INFO ] SETUP button clicked
+[2025-12-03 08:06:27] [ERROR] SETUP Failed
+[2025-12-03 08:06:28] [INFO ] SETUP button clicked
+[2025-12-03 08:06:28] [ERROR] SETUP Failed
+[2025-12-03 08:06:28] [INFO ] SETUP button clicked
+[2025-12-03 08:06:28] [ERROR] SETUP Failed
+[2025-12-03 08:06:29] [INFO ] TEARDOWN button clicked
+[2025-12-03 08:06:29] [INFO ] TEARDOWN successful

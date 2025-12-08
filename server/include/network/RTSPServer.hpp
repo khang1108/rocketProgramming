@@ -6,8 +6,8 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-#include "ServerWorker.hpp"
-#include "Socket.hpp"
+#include "network/ServerWorker.hpp"
+#include "network/Socket.hpp"
 #include "utils/Logger.hpp"
 
 /**
