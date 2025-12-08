@@ -13,12 +13,7 @@ cd build
 REM Run CMake
 echo.
 echo [1/3] Configuring with CMake...
-cmake .. -G "Visual Studio 17 2022" -A x64
-if %ERRORLEVEL% neq 0 (
-    echo CMake configuration failed!
-    pause
-    exit /b 1
-)
+cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
 REM Build project
 echo.

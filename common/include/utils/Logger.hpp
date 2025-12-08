@@ -15,9 +15,12 @@
  */
 enum class LogLevel
 {
-// Avoid accidental macro collision with a global DEBUG macro
+// Avoid accidental macro collision with global macros
 #ifdef DEBUG
 #undef DEBUG
+#endif
+#ifdef ERROR
+#undef ERROR
 #endif
     DEBUG = 0, ///< Chi tiết debug
     INFO = 1,  ///< Thông tin chung (server started, client connected)
