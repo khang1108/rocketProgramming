@@ -27,9 +27,9 @@ private:
 public:
     /**
     * @brief Constructor
-    * @param maxSize Maximum number of frames in buffer (default 30)
+    * @param maxSize Maximum number of frames in buffer (default 100)
     */
-    explicit FrameBuffer(size_t maxSize = 30);
+    explicit FrameBuffer(size_t maxSize = 100);
 
     /**
     * @brief Push frame into buffer (blocks if full)
@@ -60,6 +60,13 @@ public:
     * @return true if popped, false if empty
     */
     bool tryPop(std::vector<uint8_t>& frameData);
+
+    /**
+    * @brief Try to push without blocking (drops frame if buffer full)
+    * @param frameData Frame data to push
+    * @return true if pushed, false if buffer full or closed
+    */
+    bool tryPush(const std::vector<uint8_t>& frameData);
 
     /**
     * @brief Clear all frame in buffer

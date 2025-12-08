@@ -1,11 +1,42 @@
 #include "video/VideoStream.hpp"
+#include <filesystem>
 
 VideoStream::VideoStream(const std::string& filename) : frameNumber_(0), filename_(filename) {
-    // Mở file ở chế độ đọc và nhị phân
-    videoFile_.open(filename, std::ios::in | std::ios::binary);
+    // Danh sách các thư mục để tìm file video
+    std::vector<std::string> searchPaths = {
+        filename,                           // Đường dẫn gốc (nếu client cho absolute path)
+        "videos/" + filename,               // Tìm trong videos/ (relative)
+        "../server/videos/" + filename,     // Từ build/bin lên server/videos/
+        "../../server/videos/" + filename,  // Backup path
+    };
 
-    if (!videoFile_.is_open()) {
-        throw std::runtime_error("ERROR: Khong the mo file video");
+    // Nếu filename đã chứa "videos/", thử bỏ đi để tìm chỉ tên file
+    std::string bareFilename = filename;
+    size_t lastSlash = filename.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        bareFilename = filename.substr(lastSlash + 1);
+        searchPaths.push_back("videos/" + bareFilename);
+        searchPaths.push_back("../server/videos/" + bareFilename);
+    }
+
+    // Thử mở file từ các đường dẫn
+    bool opened = false;
+    std::string attemptedPaths;
+
+    for (const auto& path : searchPaths) {
+        videoFile_.open(path, std::ios::in | std::ios::binary);
+
+        if (videoFile_.is_open()) {
+            filename_ = path;  // Lưu đường dẫn thực tế
+            opened = true;
+            break;
+        }
+
+        attemptedPaths += "\n  - " + path;
+    }
+
+    if (!opened) {
+        throw std::runtime_error("ERROR: Khong the mo file video. Tried:" + attemptedPaths);
     }
 
     // Kiểm tra file có rỗng không
