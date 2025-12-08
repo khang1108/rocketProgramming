@@ -42,6 +42,15 @@ bool FrameBuffer::pop(std::vector<uint8_t>& frameData, int timeoutMs) {
     return true;
 }
 
+bool FrameBuffer::tryPush(const std::vector<uint8_t>& frameData) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (closed_ || buffer_.size() >= maxSize_)
+        return false;
+    buffer_.push(frameData);
+    cvNotEmpty_.notify_one();
+    return true;
+}
+
 bool FrameBuffer::tryPop(std::vector<uint8_t>& frameData) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (buffer_.empty())

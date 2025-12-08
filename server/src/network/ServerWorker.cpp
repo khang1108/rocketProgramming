@@ -229,7 +229,10 @@ void ServerWorker::streamingLoop() {
                 break;
             }
         } else {
+            LOG_INFO("Video ended, rewinding for loop playback...");
             videoStream_->rewind();
+            // Reset timestamp cho loop mới (optional - giữ sequence number liên tục)
+            // timestamp_ = 0;  // Uncomment nếu muốn reset timestamp
         }
 
         frameTimer_->wait();

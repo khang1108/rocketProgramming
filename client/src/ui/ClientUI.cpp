@@ -165,7 +165,9 @@ bool ClientUI::initialize() {
 
         rtspClient_ = std::make_unique<RTSPClient>(serverIP_, serverPort_);
 
-        frameBuffer_ = std::make_unique<FrameBuffer>(30);
+        // Buffer lớn hơn để chứa nhiều frames, đảm bảo playback mượt
+        // 500 frames = ~20 giây video @ 25 FPS
+        frameBuffer_ = std::make_unique<FrameBuffer>(500);
         frameReassembler_ = std::make_unique<FrameReassembler>(frameBuffer_.get());
 
         rtpReceiver_ = std::make_unique<RTPReceiver>(clientRTPPort_, frameReassembler_.get());
@@ -399,11 +401,12 @@ void ClientUI::updateFrame() {
             prebufferReady_ = true;
             std::cout << "[BUFFER] Prebuffer ready: " << frameBuffer_->size() << " frames\n";
         } else {
+            double percentage = frameBuffer_->size() * 100.0 / PREBUFFER_FRAMES;
             statusLabel_->setText(
-                QString("Buffering... %1/%2 frames (%.1f%%)")
+                QString("Buffering... %1/%2 frames (%3%)")
                     .arg(frameBuffer_->size())
                     .arg(PREBUFFER_FRAMES)
-                    .arg(frameBuffer_->size() * 100.0 / PREBUFFER_FRAMES)
+                    .arg(percentage, 0, 'f', 1)
             );
             return; 
         }
@@ -430,8 +433,18 @@ void ClientUI::updateFrame() {
             wasEmpty = true;
         }
         
+        // Reset prebufferReady để yêu cầu đợi buffer lại trước khi tiếp tục
+        prebufferReady_ = false;
+        
         statusLabel_->setText("⏸️ Buffering (0 frames)...");
         return; 
+    }
+    
+    // Reset wasEmpty flag khi có data trở lại
+    static bool wasEmpty = false;
+    if (wasEmpty && !frameBuffer_->isEmpty()) {
+        wasEmpty = false;
+        std::cout << "[BUFFER] Buffer refilled, resuming playback\n";
     }
 
     std::vector<uint8_t> frame;
@@ -518,7 +531,7 @@ void ClientUI::updatePrebufferIndicator()
     if(!frameBuffer_) return;
 
     int bufferSize = frameBuffer_->size();
-    int bufferCapacity = 30;
+    int bufferCapacity = 500;  // Match FrameBuffer maxSize
 
     prebufferBar_->setMaximum(bufferCapacity);
     prebufferBar_->setValue(bufferSize);
@@ -527,7 +540,7 @@ void ClientUI::updatePrebufferIndicator()
     QString style;
     QString status;
 
-    if (bufferSize >= PREBUFFER_FRAMES) {
+    if (bufferSize >= (int)PREBUFFER_FRAMES) {
         style = "QProgressBar::chunk { background-color: #4CAF50; }";
         status = "Buffer: Healthy";
     } else if (bufferSize >= 5) {
