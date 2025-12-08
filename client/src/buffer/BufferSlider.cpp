@@ -24,7 +24,7 @@ void BufferedSlider::paintEvent(QPaintEvent* event) {
     QStyleOptionSlider opt;
     initStyleOption(&opt);
 
-    // Get groove rect (the track area)
+    // Get groove rect
     QRect groove = style()->subControlRect(QStyle::CC_Slider, &opt, 
                                         QStyle::SC_SliderGroove, this);
 
@@ -35,15 +35,14 @@ void BufferedSlider::paintEvent(QPaintEvent* event) {
     int currentPos = (value() - minimum()) * groove.width() / total;
     int bufferedPos = (bufferedValue_ - minimum()) * groove.width() / total;
 
-    // Draw buffered region (gray) from current position to buffered position
+    // ✅ Draw buffered region (semi-transparent white/gray)
     if (bufferedPos > currentPos) {
         QRect bufferedRect = groove;
         bufferedRect.setLeft(groove.left() + currentPos);
         bufferedRect.setRight(groove.left() + bufferedPos);
-        bufferedRect.setHeight(4); // Match slider height
-        bufferedRect.moveTop(groove.center().y() - 2);
+        bufferedRect.setHeight(6);  // ✅ Match với stylesheet height
+        bufferedRect.moveTop(groove.center().y() - 3);
 
-        // Gray with transparency
-        painter.fillRect(bufferedRect, QColor(128, 128, 128, 180));
+        painter.fillRect(bufferedRect, QColor(180, 180, 180, 200));
     }
 }

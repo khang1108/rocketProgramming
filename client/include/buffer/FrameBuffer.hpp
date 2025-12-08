@@ -86,7 +86,10 @@ public:
     /**
     * @brief Get current buffer size
     */
-    size_t size() const {return buffer_.size();}
+    size_t size() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return buffer_.size();
+    }
 
     /**
     * @brief Get maximum buffer size
@@ -96,11 +99,46 @@ public:
     /**
     * @brief Check if buffer is empty
     */
-    bool isEmpty() const {return buffer_.empty();}
+    bool isEmpty() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return buffer_.empty();
+    }
 
     /**
     * @brief Check if buffer is full
     */
-    bool isFull() const {return buffer_.size() >= maxSize_;}
+    bool isFull() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return buffer_.size() >= maxSize_;
+    }
+
+    /**
+    * @brief Check if buffer needs rebuffering
+    * @return true if buffer size < minimum threshold
+    */
+    bool needsRebuffer() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const size_t MIN_BUFFER = 5;
+        return buffer_.size() < MIN_BUFFER;
+    }
+
+    /**
+    * @brief Get buffer fill percentage
+    * @return Percentage (0.0 - 100.0)
+    */
+    double getBufferPercentage() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return static_cast<double>(buffer_.size()) / static_cast<double>(maxSize_) * 100.0;
+    }
+
+    /**
+    * @brief Check if buffer is healthy for playback
+    * @param minFrames Minimum frames required for healthy playback (default: 10)
+    * @return true if buffer is healthy, false otherwise
+    */
+    bool isHealthy(size_t minFrames = 1) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return buffer_.size() >= minFrames;
+    }
 };
 #endif

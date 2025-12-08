@@ -279,8 +279,7 @@ bool RTSPClient::sendPause() {
 bool RTSPClient::sendTeardown() {
     // TEARDOWN can be called from any state
     std::ostringstream req;
-    req << "TEARDOWN RTSP/1.0\r\n";
-    req << "PLAY " << rtspUri_ << " RTSP/1.0\r\n";
+    req << "TEARDOWN " << rtspUri_ << "RTSP/1.0\r\n";
     req << "CSeq: " << ++cseq_ << "\r\n";
     if (!sessionId_.empty())
         req << "Session: " << sessionId_ << "\r\n";
@@ -289,16 +288,25 @@ bool RTSPClient::sendTeardown() {
     try {
         std::string resp = sendRtspRequest(req.str());
         int code = parseStatusCode(resp);
+
+        std::cout << "[RTSP] TEARDOWN response code = " << code << "\n";
+
         sessionId_.clear();
+
         state_ = State::INIT;
+
         clientRTPPort_ = 0;
         serverRTPPort_ = 0;
+
         return code == 200;
     } catch (const SocketException&) {
         sessionId_.clear();
+
         state_ = State::INIT;
+
         clientRTPPort_ = 0;
         serverRTPPort_ = 0;
+        
         return false;
     }
 }

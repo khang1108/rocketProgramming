@@ -131,6 +131,15 @@ std::string ServerWorker::handlePlay(const RTSPMessage::Request& request) {
     if (!validateSessionId(request))
         return RTSPMessage::buildResponse(454, "Session Not Found", request.cseq);
 
+    // ✅ Kiểm tra nếu video đã hết → rewind để play lại từ đầu
+    if (videoStream_ && !videoStream_->hasMoreFrames()) {
+        LOG_INFO("Video at end, rewinding to start...");
+        videoStream_->rewind();
+        // Reset timestamp để bắt đầu lại
+        timestamp_ = 0;
+        LOG_INFO("Video rewound, ready to play from beginning");
+    }
+
     if (!streaming_) {
         streaming_ = true;
         streamingThread_ = std::thread(&ServerWorker::streamingLoop, this);
@@ -229,10 +238,15 @@ void ServerWorker::streamingLoop() {
                 break;
             }
         } else {
-            LOG_INFO("Video ended, rewinding for loop playback...");
-            videoStream_->rewind();
-            // Reset timestamp cho loop mới (optional - giữ sequence number liên tục)
-            // timestamp_ = 0;  // Uncomment nếu muốn reset timestamp
+            // ✅ Video hết → DỪNG, không auto-loop
+            LOG_INFO("Video ended, stopping playback (no auto-loop)");
+            state_ = State::READY;  // PLAYING → READY
+            // NOTE: Không set streaming_ = false, để thread vẫn alive
+            // Thread sẽ sleep khi state != PLAYING
+            LOG_INFO("State changed to READY. Click PLAY to restart from beginning.");
+
+            // Sleep một chút để không busy loop
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         frameTimer_->wait();

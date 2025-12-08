@@ -1,52 +1,52 @@
 #include "ui/ClientUI.hpp"
 #include "utils/Logger.hpp"
 
+#include <QApplication>
 #include <QHBoxLayout>
 #include <QImage>
 #include <QLabel>
 #include <QPixmap>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QSizePolicy>
+#include <QSlider>
 #include <QString>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QSlider>
-#include <QProgressBar>
 
 #include <chrono>
 #include <iostream>
 #include <string>
 
 ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::string& videoFile,
-                    int clientRTPPort, QWidget* parent)
-    : 
-        QWidget(parent),
-        serverIP_(serverIP),
-        serverPort_(serverPort),
-        videoFile_(videoFile),
-        clientRTPPort_(clientRTPPort),
-        initialized_(false),
-        state_(State::INIT),
-        videoLabel_(nullptr),
-        statusLabel_(nullptr),
-        setupButton_(nullptr),
-        playButton_(nullptr),
-        pauseButton_(nullptr),
-        teardownButton_(nullptr),
-        statusTimer_(nullptr),
-        frameTimer_(nullptr),
-        timelineSlider_(nullptr),
-        currentTimeLabel_(nullptr),
-        totalTimeLabel_(nullptr),
-        prebufferBar_(nullptr),
-        prebufferLabel_(nullptr),
-        isSeekingTimeline_(false),
-        totalFrames_(0),
-        currentFrame_(0),
-        bufferedFrame_(0),
-        prebufferReady_(false),
-        framesThisSecond_(0),
-        fps_(0) {
+                   int clientRTPPort, QWidget* parent)
+    : QWidget(parent),
+      serverIP_(serverIP),
+      serverPort_(serverPort),
+      videoFile_(videoFile),
+      clientRTPPort_(clientRTPPort),
+      initialized_(false),
+      state_(State::INIT),
+      videoLabel_(nullptr),
+      statusLabel_(nullptr),
+      setupButton_(nullptr),
+      playButton_(nullptr),
+      pauseButton_(nullptr),
+      teardownButton_(nullptr),
+      statusTimer_(nullptr),
+      frameTimer_(nullptr),
+      timelineSlider_(nullptr),
+      currentTimeLabel_(nullptr),
+      totalTimeLabel_(nullptr),
+      prebufferBar_(nullptr),
+      prebufferLabel_(nullptr),
+      isSeekingTimeline_(false),
+      totalFrames_(0),
+      currentFrame_(0),
+      bufferedFrame_(0),
+      prebufferReady_(false),
+      framesThisSecond_(0),
+      fps_(0) {
     auto* mainLayout = new QVBoxLayout(this);
     auto* buttonLayout = new QHBoxLayout();
 
@@ -67,7 +67,7 @@ ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::strin
     videoLabel_->setStyleSheet("background-color: black; color: white;");
 
     QHBoxLayout* prebufferLayout = new QHBoxLayout();
-    
+
     prebufferLabel_ = new QLabel("Buffer:");
     prebufferBar_ = new QProgressBar();
     prebufferBar_->setMaximum(PREBUFFER_FRAMES);
@@ -75,51 +75,51 @@ ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::strin
     prebufferBar_->setTextVisible(true);
     prebufferBar_->setFormat("%v/%m frames");
     prebufferBar_->setMaximumHeight(20);
-    
+
     prebufferLayout->addWidget(prebufferLabel_);
     prebufferLayout->addWidget(prebufferBar_, 1);
-    
+
     mainLayout->addLayout(prebufferLayout);
 
     QHBoxLayout* timelineLayout = new QHBoxLayout();
-    
-    currentTimeLabel_ = new QLabel("00:00");
-    currentTimeLabel_->setMinimumWidth(50);
-    
+
+    // currentTimeLabel_ = new QLabel("00:00");
+    // currentTimeLabel_->setMinimumWidth(50);
+
     timelineSlider_ = new BufferedSlider(Qt::Horizontal);
     timelineSlider_->setMinimum(0);
-    timelineSlider_->setMaximum(1000); // Will update later
+    timelineSlider_->setMaximum(1000);  // Will update later
     timelineSlider_->setValue(0);
-    timelineSlider_->setBufferedValue(0); 
+    timelineSlider_->setBufferedValue(0);
     timelineSlider_->setEnabled(false);
 
-    timelineSlider_->setStyleSheet(
-        "QSlider::groove:horizontal {"
-        "    border: 1px solid #999;"
-        "    height: 4px;"
-        "    background: #333;"
-        "    margin: 2px 0;"
-        "}"
-        "QSlider::handle:horizontal {"
-        "    background: #1E88E5;"
-        "    border: 1px solid #1565C0;"
-        "    width: 12px;"
-        "    margin: -5px 0;"
-        "    border-radius: 6px;"
-        "}"
-        "QSlider::sub-page:horizontal {"
-        "    background: #1E88E5;"  // Current playback position (blue)
-        "    height: 4px;"
-        "}"
-    );
+    timelineSlider_->setStyleSheet("QSlider::groove:horizontal {"
+                                   "    border: 1px solid #999;"
+                                   "    height: 6px;"
+                                   "    background: #333;"  // Dark gray: chưa load
+                                   "    margin: 2px 0;"
+                                   "    border-radius: 3px;"  // Bo tròn góc
+                                   "}"
+                                   "QSlider::handle:horizontal {"
+                                   "    background: #2196F3;"  // Blue handle
+                                   "    border: 2px solid #1976D2;"
+                                   "    width: 14px;"  // Tăng size handle
+                                   "    height: 14px;"
+                                   "    margin: -5px 0;"
+                                   "    border-radius: 7px;"
+                                   "}"
+                                   "QSlider::sub-page:horizontal {"  // Phần đã play
+                                   "    background: #2196F3;"        // Blue: đã play
+                                   "    border-radius: 3px;"
+                                   "}");
 
-    totalTimeLabel_ = new QLabel("00:00");
-    totalTimeLabel_->setMinimumWidth(50);
-    
-    timelineLayout->addWidget(currentTimeLabel_);
+    // totalTimeLabel_ = new QLabel("00:00");
+    // totalTimeLabel_->setMinimumWidth(50);
+
+    // timelineLayout->addWidget(currentTimeLabel_);
     timelineLayout->addWidget(timelineSlider_, 1);
-    timelineLayout->addWidget(totalTimeLabel_);
-    
+    // timelineLayout->addWidget(totalTimeLabel_);
+
     mainLayout->addLayout(timelineLayout);
 
     statusLabel_ = new QLabel("[INIT] Ready");
@@ -144,7 +144,7 @@ ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::strin
     connect(frameTimer_, &QTimer::timeout, this, &ClientUI::updateFrame);
 
     statusTimer_->start(1000);
-    frameTimer_->start(40);
+    frameTimer_->start(45);
 
     connect(timelineSlider_, &QSlider::sliderPressed, this, &ClientUI::onTimelineSliderPressed);
     connect(timelineSlider_, &QSlider::sliderReleased, this, &ClientUI::onTimelineSliderReleased);
@@ -182,10 +182,12 @@ bool ClientUI::initialize() {
         return true;
     } catch (const std::exception& e) {
         Logger::getInstance().log(LogLevel::ERROR,
-                                "Failed to initialize Client UI: " + std::string(e.what()));
+                                  "Failed to initialize Client UI: " + std::string(e.what()));
         return false;
     }
 }
+
+void ClientUI::onTimelineValueChanged(int value) {}
 
 void ClientUI::onSetupClicked() {
     if (!initialized_) {
@@ -206,15 +208,18 @@ void ClientUI::onSetupClicked() {
 
             timelineSlider_->setEnabled(true);
 
-            totalFrames_ = 10000; // Placeholder
-            timelineSlider_->setMaximum(totalFrames_);
-            
-            int totalSeconds = totalFrames_ / 25; // Assume 25 FPS
-            totalTimeLabel_->setText(formatTime(totalSeconds));
+            int initialMax = 25000;  // ~16 phút @ 25 FPS
+            timelineSlider_->setMaximum(initialMax);
+
+            // totalFrames_ = 10000; // Placeholder
+            // timelineSlider_->setMaximum(totalFrames_);
+
+            // int totalSeconds = totalFrames_ / 25; // Assume 25 FPS
+            // totalTimeLabel_->setText(formatTime(totalSeconds));
 
             std::cout << "[SETUP] Success! Session ID: " << sessionId << "\n";
             Logger::getInstance().log(LogLevel::INFO,
-                                    "SETUP successfully, Session ID: " + sessionId);
+                                      "SETUP successfully, Session ID: " + sessionId);
         } else {
             std::cout << "[SETUP] Failed please check again\n";
             Logger::getInstance().log(LogLevel::ERROR, "SETUP Failed");
@@ -298,6 +303,9 @@ void ClientUI::onTeardownClicked() {
 
         if (rtpReceiver_)
             rtpReceiver_->stop();
+        if (frameBuffer_) {
+            frameBuffer_->clear();
+        }
 
         bool success = rtspClient_->sendTeardown();
 
@@ -340,15 +348,12 @@ QString ClientUI::makeStatusString() const {
         packetsReceived = rtpReceiver_->getPacketReceived();
     }
 
-    if(frameBuffer_) bufferSize = frameBuffer_->size();
+    if (frameBuffer_)
+        bufferSize = frameBuffer_->size();
 
     QString qs;
-    qs.asprintf("[%s] FPS: %d | Buffer: %d frames | Packets: %llu | Loss: %.2f%%", 
-                state.c_str(), 
-                fps_,
-                bufferSize,
-                static_cast<unsigned long long>(packetsReceived), 
-                packetLoss);
+    qs.asprintf("[%s] FPS: %d | Buffer: %d frames | Packets: %llu | Loss: %.2f%%", state.c_str(),
+                fps_, bufferSize, static_cast<unsigned long long>(packetsReceived), packetLoss);
     return qs;
 }
 
@@ -356,6 +361,19 @@ void ClientUI::updateButtonStates() {
     // RTSP State Machine:
     // INIT → SETUP → READY → PLAY → PLAYING → PAUSE → READY
     //                 READY/PLAYING → TEARDOWN → INIT
+
+    // DEBUG: Log mỗi lần update
+
+    std::cout << "updateButtonStates: state_ = " << static_cast<int>(state_) << "\n";
+
+    static int callCount = 0;
+    callCount++;
+    if (callCount % 25 == 1) {
+        std::string stateName = (state_ == State::INIT    ? "INIT"
+                                 : state_ == State::READY ? "READY"
+                                                          : "PLAYING");
+        std::cout << "[updateButtonStates] State: " << stateName << "\n";
+    }
 
     switch (state_) {
         case State::INIT:
@@ -391,60 +409,137 @@ void ClientUI::updateStatus() {
 }
 
 void ClientUI::updateFrame() {
-    if (!initialized_ || !frameBuffer_)
+    // KHÔNG return ngay nếu state != PLAYING
+    // Vì cần check buffer empty để detect video end
+
+    if (!initialized_ || !frameBuffer_ || !videoLabel_ || !statusLabel_)
         return;
 
-    updatePrebufferIndicator();
+    // SAFETY: Wrap toàn bộ hàm trong try-catch
+    try {
+        updatePrebufferIndicator();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception in updatePrebufferIndicator: " + std::string(e.what()));
+        return;
+    }
+
+    // CHỈ PROCESS frames khi đang PLAYING
+    if (state_ != State::PLAYING) {
+        return;
+    }
 
     if (!prebufferReady_) {
-        if (frameBuffer_->size() >= PREBUFFER_FRAMES) {
+        size_t bufferSize = frameBuffer_->size();
+
+        if (bufferSize >= PREBUFFER_FRAMES) {
             prebufferReady_ = true;
-            std::cout << "[BUFFER] Prebuffer ready: " << frameBuffer_->size() << " frames\n";
+            std::cout << "[BUFFER] Prebuffer ready: " << bufferSize << " frames\n";
+            LOG_INFO("[BUFFER] Prebuffer ready: " + std::to_string(bufferSize) + " frames");
         } else {
-            double percentage = frameBuffer_->size() * 100.0 / PREBUFFER_FRAMES;
-            statusLabel_->setText(
-                QString("Buffering... %1/%2 frames (%3%)")
-                    .arg(frameBuffer_->size())
-                    .arg(PREBUFFER_FRAMES)
-                    .arg(percentage, 0, 'f', 1)
-            );
-            return; 
+            double percentage = bufferSize * 100.0 / PREBUFFER_FRAMES;
+            statusLabel_->setText(QString("Buffering... %1/%2 frames (%3%)")
+                                      .arg(bufferSize)
+                                      .arg(PREBUFFER_FRAMES)
+                                      .arg(percentage, 0, 'f', 1));
+            return;
         }
     }
 
-    if (frameBuffer_->size() < 5 && frameBuffer_->size() > 0 && state_ == State::PLAYING) {
-        static int rebufferWarningCount = 0;
-        rebufferWarningCount++;
-        
-        if (rebufferWarningCount % 25 == 0) {
-            std::cout << "[BUFFER] Buffer low (" << frameBuffer_->size() << " frames), continuing playback but may stutter\n";
-        }
-        
-        statusLabel_->setText(
-            QString("[BUFFER] Low Buffer: %1 frames (loading...)")
-                .arg(frameBuffer_->size())
-        );
-    }
+    // Static counters cho buffer empty tracking
+    static bool shownEmptyWarning = false;
+    static int emptyCount = 0;
 
-    if (frameBuffer_->isEmpty() && state_ == State::PLAYING) {
-        static bool wasEmpty = false;
-        if (!wasEmpty) {
+    size_t currentBufferSize = frameBuffer_->size();
+
+    if (currentBufferSize == 0) {
+        if (!shownEmptyWarning) {
             std::cout << "[BUFFER] Buffer empty! Waiting for data...\n";
-            wasEmpty = true;
+            LOG_WARN("[BUFFER] Buffer empty! Waiting for data...");
+            shownEmptyWarning = true;
+            emptyCount = 0;
         }
-        
-        // Reset prebufferReady để yêu cầu đợi buffer lại trước khi tiếp tục
+
+        bool isEndOfVideo = (currentFrame_ >= totalFrames_ - 1)
+                    && (currentBufferSize == 0)
+                    && !rtpReceiver_->isRunning();
+        if (isEndOfVideo) {
+            std::cout << "[BUFFER] End of stream detected\n";
+            state_ = State::READY;
+            prebufferReady_ = false;
+            emptyCount = 0;
+
+            if (rtpReceiver_) rtpReceiver_->stop();
+            if (frameBuffer_) frameBuffer_->clear();
+
+            statusLabel_->setText("Video ended. Click PLAY to restart.");
+            updateButtonStates();
+            return;
+        }
+
+        emptyCount++;
+        if (emptyCount > 125) {  // 125 * 40ms = 5 giây
+            std::cout << "[BUFFER] Buffer empty for 5 seconds - VIDEO ENDED\n";
+            LOG_INFO("[BUFFER] Buffer empty for 5 seconds - stopping playback");
+
+            // Immediately change state (this stops updateFrame from continuing)
+            state_ = State::READY;
+            prebufferReady_ = false;
+            emptyCount = 0;
+
+            // Stop RTP receiver
+            if (rtpReceiver_) {
+                std::cout << "[BUFFER] Stopping RTP receiver...\n";
+                rtpReceiver_->stop();
+            }
+
+            // Clear buffer
+            if (frameBuffer_) {
+                std::cout << "[BUFFER] Clearing frame buffer...\n";
+                frameBuffer_->clear();
+            }
+            
+            statusLabel_->setText("⏹️ Video ended. Click PLAY to restart.");
+            updateButtonStates();
+
+            return;
+        } else {
+            statusLabel_->setText(QString("⏸️ Rebuffering... 0/%1 frames (%2s)")
+                                      .arg(PREBUFFER_FRAMES)
+                                      .arg(emptyCount * 40 / 1000.0, 0, 'f', 1));
+        }
+
         prebufferReady_ = false;
-        
-        statusLabel_->setText("⏸️ Buffering (0 frames)...");
-        return; 
+        return;
+    } else {
+        // Reset warning flags khi buffer có data trở lại
+        shownEmptyWarning = false;
+        emptyCount = 0;
     }
-    
-    // Reset wasEmpty flag khi có data trở lại
-    static bool wasEmpty = false;
-    if (wasEmpty && !frameBuffer_->isEmpty()) {
-        wasEmpty = false;
-        std::cout << "[BUFFER] Buffer refilled, resuming playback\n";
+
+    const size_t LOW_BUFFER_THRESHOLD = 5;
+    if (currentBufferSize < LOW_BUFFER_THRESHOLD) {
+        static int lowBufferCount = 0;
+        lowBufferCount++;
+
+        if (lowBufferCount % 25 == 1) {
+            std::cout << "[BUFFER] Buffer low (" << currentBufferSize
+                      << " frames), continuing playback but may stutter\n";
+            LOG_WARN("[BUFFER] Buffer low (" + std::to_string(currentBufferSize) +
+                     " frames), continuing playback but may stutter");
+        }
+
+        statusLabel_->setText(
+            QString("[WARNING] Low Buffer: %1 frames (loading...)").arg(currentBufferSize));
+    }
+
+    if (currentBufferSize >= 20) {
+        frameTimer_->setInterval(38);
+    } else if (currentBufferSize >= 10) {
+        frameTimer_->setInterval(40);
+    } else if (currentBufferSize >= 5) {
+        frameTimer_->setInterval(45);
+    } else {
+        frameTimer_->setInterval(50);
     }
 
     std::vector<uint8_t> frame;
@@ -452,110 +547,134 @@ void ClientUI::updateFrame() {
         return;
     }
 
-    if (frame.empty())
-        return;
-
-    QImage image;
-    if (!image.loadFromData(frame.data(), static_cast<int>(frame.size()), "JPEG")) {
-        LOG_ERROR("Failed to decode JPEG frame");
+    if (frame.empty()) {
+        LOG_WARN("[BUFFER] Popped empty frame data");
         return;
     }
 
-    QPixmap pixmap = QPixmap::fromImage(
-        image.scaled(videoLabel_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    // WRAP JPEG decoding trong try-catch để tránh crash
+    try {
+        QImage image;
+        if (!image.loadFromData(frame.data(), static_cast<int>(frame.size()), "JPEG")) {
+            LOG_ERROR("Failed to decode JPEG frame");
+            return;
+        }
 
-    videoLabel_->setPixmap(pixmap);
+        if (!videoLabel_) {
+            LOG_ERROR("videoLabel_ is null!");
+            return;
+        }
+
+        QPixmap pixmap = QPixmap::fromImage(
+            image.scaled(videoLabel_->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+
+        videoLabel_->setPixmap(pixmap);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception in frame rendering: " + std::string(e.what()));
+        return;
+    } catch (...) {
+        LOG_ERROR("Unknown exception in frame rendering");
+        return;
+    }
 
     currentFrame_++;
     framesThisSecond_++;
 
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsStartTime_).count();
-    
+
     if (elapsed >= 1) {
         fps_ = framesThisSecond_;
         framesThisSecond_ = 0;
         fpsStartTime_ = now;
-        std::cout << "[STATUS] FPS: " << fps_ 
-                << " | Buffer: " << frameBuffer_->size() << " frames"
-                << " | Frame: " << currentFrame_ << "\n";
+        std::cout << "[STATUS] FPS: " << fps_ << " | Buffer: " << frameBuffer_->size() << " frames"
+                  << " | Frame: " << currentFrame_ << "\n";
     }
 
     updateTimeline();
 }
 
-void ClientUI::onTimelineSliderPressed()
-{
+void ClientUI::onTimelineSliderPressed() {
     isSeekingTimeline_ = true;
     LOG_INFO("[ClientUI] Timeline seek started");
 }
 
-void ClientUI::onTimelineSliderReleased()
-{
+void ClientUI::onTimelineSliderReleased() {
     isSeekingTimeline_ = false;
 
     int targetFrame = timelineSlider_->value();
     LOG_INFO("Timeline seek to frame: " + std::to_string(targetFrame));
-    
+
     currentFrame_ = targetFrame;
 }
 
-void ClientUI::onTimelineValueChanged(int value)
-{
-    if(isSeekingTimeline_){
-        int seconds = fps_ > 0 ? value / fps_ : 0;
-
-        currentTimeLabel_->setText(formatTime(seconds));
+void ClientUI::updateTimeline() {
+    // NULL SAFETY: Kiểm tra slider tồn tại
+    if (!timelineSlider_ || !frameBuffer_) {
+        return;
     }
-}
 
-void ClientUI::updateTimeline()
-{
-    if(!isSeekingTimeline_ && state_ == State::PLAYING){
-        if(fps_ > 0 && totalFrames_ > 0){
+    if (!isSeekingTimeline_ && state_ == State::PLAYING) {
+        try {
             timelineSlider_->setValue(currentFrame_);
 
-            if (frameBuffer_) {
-                bufferedFrame_ = currentFrame_ + frameBuffer_->size();
-                timelineSlider_->setBufferedValue(std::min(bufferedFrame_, totalFrames_));
+            // Cache buffer size để tránh gọi nhiều lần
+            size_t bufferSize = frameBuffer_->size();
+            bufferedFrame_ = currentFrame_ + static_cast<int>(bufferSize);
+
+            int maxFrames = timelineSlider_->maximum();
+            int bufferedPos = std::min(bufferedFrame_, maxFrames);
+
+            timelineSlider_->setBufferedValue(bufferedPos);
+
+            static int logCount = 0;
+            if (++logCount % 25 == 0) {  // Log mỗi giây
+                std::cout << "[TIMELINE] Current: " << currentFrame_
+                          << " | Buffered: " << bufferedFrame_ << " | Buffer size: " << bufferSize
+                          << " frames\n";
             }
 
-            int currentSeconds = currentFrame_ / fps_;
-            currentTimeLabel_->setText(formatTime(currentSeconds));
+            // Auto-extend với safety check
+            if (currentFrame_ >= maxFrames - 100 && maxFrames < 100000) {
+                int newMax = maxFrames + 5000;
+                timelineSlider_->setMaximum(newMax);
+                std::cout << "[TIMELINE] Extended max to " << newMax << " frames\n";
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Exception in updateTimeline: " + std::string(e.what()));
+        } catch (...) {
+            LOG_ERROR("Unknown exception in updateTimeline");
         }
     }
 }
 
-void ClientUI::updatePrebufferIndicator()
-{
-    if(!frameBuffer_) return;
+void ClientUI::updatePrebufferIndicator() {
+    if (!prebufferBar_ || !frameBuffer_)
+        return;
 
-    int bufferSize = frameBuffer_->size();
-    int bufferCapacity = 500;  // Match FrameBuffer maxSize
+    int bufferSize = static_cast<int>(frameBuffer_->size());
 
-    prebufferBar_->setMaximum(bufferCapacity);
     prebufferBar_->setValue(bufferSize);
-    prebufferBar_->setFormat(QString("%v/%m frames (%p%)"));
-
-    QString style;
-    QString status;
 
     if (bufferSize >= (int)PREBUFFER_FRAMES) {
-        style = "QProgressBar::chunk { background-color: #4CAF50; }";
-        status = "Buffer: Healthy";
+        // GREEN: Healthy
+        prebufferBar_->setStyleSheet(
+            "QProgressBar { border: 1px solid #4CAF50; background-color: #1E1E1E; "
+            "text-align: center; color: white; }"
+            "QProgressBar::chunk { background-color: #4CAF50; }");
     } else if (bufferSize >= 5) {
-        style = "QProgressBar::chunk { background-color: #FFC107; }";
-        status = "Buffer: Low";
-    } else if (bufferSize > 0) {
-        style = "QProgressBar::chunk { background-color: #FF9800; }";
-        status = "Buffer: Critical";
+        // YELLOW: Low but OK
+        prebufferBar_->setStyleSheet(
+            "QProgressBar { border: 1px solid #FFC107; background-color: #1E1E1E; "
+            "text-align: center; color: white; }"
+            "QProgressBar::chunk { background-color: #FFC107; }");
     } else {
-        style = "QProgressBar::chunk { background-color: #F44336; }";
-        status = "Buffer: Empty";
+        // RED: Critical
+        prebufferBar_->setStyleSheet(
+            "QProgressBar { border: 1px solid #F44336; background-color: #1E1E1E; "
+            "text-align: center; color: white; }"
+            "QProgressBar::chunk { background-color: #F44336; }");
     }
-
-    prebufferBar_->setStyleSheet(style);
-    prebufferLabel_->setText(status);
 }
 
 QString ClientUI::formatTime(int seconds) const {

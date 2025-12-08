@@ -42,9 +42,9 @@ class ClientUI : public QWidget {
     void updateStatus();
     void updateFrame();
 
+    void onTimelineValueChanged(int value);
     void onTimelineSliderPressed();
     void onTimelineSliderReleased();
-    void onTimelineValueChanged(int value);
 
   private:
     void updateButtonStates();
