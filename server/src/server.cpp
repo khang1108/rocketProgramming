@@ -19,7 +19,6 @@
 #include "network/RTSPServer.hpp"
 #include "utils/Config.hpp"
 #include "utils/Logger.hpp"
-
 #undef ERROR
 
 // Global server instance (for signal handling)
