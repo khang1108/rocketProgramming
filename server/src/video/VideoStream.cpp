@@ -1,4 +1,8 @@
 #include "video/VideoStream.hpp"
+#include "utils/Logger.hpp"
+
+#include <iostream>
+#include <vector>
 
 VideoStream::VideoStream(const std::string& filename) : frameNumber_(0), filename_(filename) {
     // Mở file ở chế độ đọc và nhị phân
@@ -23,47 +27,54 @@ VideoStream::~VideoStream() {
 }
 
 std::vector<uint8_t> VideoStream::nextFrame() {
-    if (!hasMoreFrames()) {
-        throw std::runtime_error("ERROR: Khong con frame de doc");
-    }
-    // Đọc 5 bytes header chứa kích thước frame (ASCII format)
-    char header[6];  // 5 bytes + null terminator
-    videoFile_.read(header, 5);
-    header[5] = '\0';  // Null terminate for string conversion
-
-    // Kiểm tra xem có đủ 5 bytes không
-    if (videoFile_.gcount() != 5) {
-        throw std::runtime_error("ERROR: Khong doc duoc header frame");
+    if(!videoFile_.is_open()){
+        throw std::runtime_error("[VideoStream Error] VideoFile not open!");
+        LOG_ERROR("[VideoStream Error] VideoFile not open");
     }
 
-    // Chuyển đổi 5 byte ASCII header thành số nguyên (kích thước frame)
-    // Format: "06014" -> 6014 bytes
-    int frameLength = 0;
-    try {
-        frameLength = std::stoi(header);
-    } catch (const std::exception& e) {
-        throw std::runtime_error("ERROR: Khong the parse frame length tu header: " +
-                                 std::string(header));
+    std::vector<uint8_t> frame;
+    bool foundSOI = false;
+
+    int prevByteInt = EOF;
+    int currByteInt;
+
+    while(true){
+        currByteInt = videoFile_.get();
+        if(currByteInt == EOF){
+            if (!foundSOI) {
+                throw std::runtime_error("ERROR: No more frames (EOF before SOI)");
+            } else {
+                throw std::runtime_error("ERROR: Truncated frame (EOF before EOI)");
+            }
+        }
+
+        uint8_t currByte = static_cast<uint8_t>(currByteInt);
+
+        if(!foundSOI){
+            if(prevByteInt == 0xFF && currByte == 0xD8){
+                frame.clear();
+                frame.push_back(0xFF);
+                frame.push_back(0xD8);
+                foundSOI = true;
+            }
+        }
+        else{
+            frame.push_back(currByte);
+
+            if(prevByteInt == 0xFF && currByte == 0xD9){
+                break;
+            }
+        }
+
+        prevByteInt = currByte;
     }
 
-    // Kiểm tra frameLength hợp lệ
-    if (frameLength <= 0 || frameLength > 100000) {  // Max ~100KB per frame for MJPEG
-        throw std::runtime_error("ERROR: Frame length khong hop le: " +
-                                 std::to_string(frameLength));
+    if(frame.empty()){
+        throw std::runtime_error("[Video Stream Error] Empty frame read");
+        LOG_ERROR("[Video Stream Error] Empty frame read");
     }
-
-    // Đọc dữ liệu ảnh (Payload) dựa trên kích thước vừa tính
-    std::vector<uint8_t> frameData(frameLength);
-    videoFile_.read(reinterpret_cast<char*>(frameData.data()), frameLength);
-
-    // Kiểm tra xem có đọc đủ dữ liệu không
-    if (videoFile_.gcount() != static_cast<std::streamsize>(frameLength)) {
-        throw std::runtime_error("Loi: File ket thuc dot ngot khi dang doc frame data");
-    }
-
-    // Tăng số thứ tự frame và trả về dữ liệu
     frameNumber_++;
-    return frameData;
+    return frame;
 }
 
 void VideoStream::rewind() {
@@ -94,44 +105,32 @@ int VideoStream::countFrames() {
     videoFile_.seekg(0, std::ios::beg);
 
     int frameCount = 0;
+    bool insideFrame = false;
+
+    int prevByteInt = EOF;
+    int currByteInt;
 
     while (true) {
-        char header[6] = {0};
-
-        videoFile_.read(header, 5);
-        std::streamsize n = videoFile_.gcount();
-
-        if (n == 0) {
+        currByteInt = videoFile_.get();
+        if(currByteInt == EOF){
             break;
         }
 
-        if (n != 5) {
-            std::cerr << "[VideoStream] Incomplete header: read " << n << " bytes\n";
-            break;
+        uint8_t currByte = static_cast<uint8_t>(currByteInt);
+
+        if(!insideFrame){
+            if(prevByteInt == 0xFF && currByte == 0xD8){
+                insideFrame = true;
+            }
+            else{
+                if(prevByteInt == 0xFF && currByte == 0xD9){
+                    frameCount++;
+                    insideFrame = false;
+                }
+            }
         }
 
-        int frameLength = 0;
-        try {
-            frameLength = std::stoi(header);
-        } catch (const std::exception& e) {
-            std::cerr << "[VideoStream] Invalid header: '" << header
-                      << "' (" << e.what() << ")\n";
-            break;
-        }
-
-        if (frameLength <= 0 || frameLength > 100000) {
-            std::cerr << "[VideoStream] Invalid frame length in countFrames: "
-                      << frameLength << " (header='" << header << "')\n";
-            break;
-        }
-
-        videoFile_.seekg(frameLength, std::ios::cur);
-        if (!videoFile_) {
-            std::cerr << "[VideoStream] Unexpected EOF while skipping frame payload\n";
-            break;
-        }
-
-        ++frameCount;
+        prevByteInt = currByte;
     }
 
     // Reset lại cho nextFrame() dùng từ đầu

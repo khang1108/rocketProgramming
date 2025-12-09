@@ -186,9 +186,10 @@ bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
     // Construct proper RTSP URI
     std::string rtspUri =
         "rtsp://" + serverIP_ + ":" + std::to_string(serverPort_) + "/" + videoFile;
+    std::cout << "[RTSPClient] Using URI: " << rtspUri << "\n";
 
     std::ostringstream req;
-    req << "SETUP " << rtspUri << " RTSP/1.0\r\n";
+    req << "SETUP " << videoFile << " RTSP/1.0\r\n";
     req << "CSeq: " << ++cseq_ << "\r\n";
     req << "Transport: RTP/AVP/UDP;unicast;client_port=" << clientRTPPort << "-"
         << (clientRTPPort + 1) << "\r\n";
@@ -238,8 +239,11 @@ bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
 }
 
 bool RTSPClient::sendPlay() {
-    if (!validateState(State::READY))
+    if (state_ != State::READY && state_ != State::PLAYING) {
+        std::cerr << "[RTSP] sendPlay(): invalid state = " 
+                << getStateString() << std::endl;
         return false;
+    }
     if (sessionId_.empty())
         return false;
 

@@ -68,11 +68,6 @@ void RTPReceiver::stop() {
         return;
     running_ = false;
     // Closing socket will cause receiveFrom to throw / unblock
-    try {
-        if (socket_)
-            socket_->close();
-    } catch (...) {
-    }
     if (receiverThread_.joinable())
         receiverThread_.join();
 }

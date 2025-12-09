@@ -85,7 +85,7 @@ class ClientUI : public QWidget {
     int bufferedFrame_;
     std::chrono::steady_clock::time_point playStartTime_;
 
-    static constexpr size_t PREBUFFER_FRAMES = 10;
+    static constexpr size_t PREBUFFER_FRAMES = 50;
     bool prebufferReady_;
     int framesThisSecond_;
     int fps_;
