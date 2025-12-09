@@ -1,4 +1,6 @@
 #include "network/RTSPClient.hpp"
+#include "network/RTSPMessage.hpp"
+#include "utils/Logger.hpp"
 
 #include <cctype>
 #include <cstdint>
@@ -17,6 +19,7 @@ RTSPClient::RTSPClient(const std::string& serverIP, int serverPort)
       serverPort_(serverPort),
       clientRTPPort_(0),
       serverRTPPort_(0),
+      totalFrames_(0),
       rtspUri_("") {
     // Socket will be created and connected when first request is sent
     std::cout << "[RTSPClient] Created client for " << serverIP << ":" << serverPort << std::endl;
@@ -206,6 +209,17 @@ bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
         return false;
     }
 
+    RTSPMessage::Response parsed = RTSPMessage::parseResponse(resp);
+
+    std::string tfStr = RTSPMessage::getHeader(parsed.headers, "X-Total-Frames", "0");
+    totalFrames_ = std::stoi(tfStr);
+    if(totalFrames_ <= 0){
+        std::cerr << "[RTSPClient] Cannot count total frames of the video\n";
+        LOG_ERROR("[RTSPClient] Cannot count total frames of the video");
+
+        return false;
+    }
+
     std::string sid = extractSessionId(resp);
 
     std::cout << "Session ID: " << sid << std::endl;
@@ -214,11 +228,6 @@ bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
         std::cerr << "Failed to extract session info from response" << std::endl;
         return false;
     }
-
-    // int srvPort = extractServerRTPPort(resp);
-    // if (srvPort != 0) {
-    //     serverRTPPort_ = srvPort;
-    // }
 
     sessionId_ = sid;
     clientRTPPort_ = clientRTPPort;
@@ -306,7 +315,7 @@ bool RTSPClient::sendTeardown() {
 
         clientRTPPort_ = 0;
         serverRTPPort_ = 0;
-        
+
         return false;
     }
 }

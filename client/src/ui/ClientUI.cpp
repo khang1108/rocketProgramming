@@ -88,7 +88,7 @@ ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::strin
 
     timelineSlider_ = new BufferedSlider(Qt::Horizontal);
     timelineSlider_->setMinimum(0);
-    timelineSlider_->setMaximum(1000);  // Will update later
+    timelineSlider_->setMaximum(totalFrames_);  // Will update later
     timelineSlider_->setValue(0);
     timelineSlider_->setBufferedValue(0);
     timelineSlider_->setEnabled(false);
@@ -206,16 +206,12 @@ void ClientUI::onSetupClicked() {
             state_ = State::READY;  // INIT → READY
             updateButtonStates();
 
+            totalFrames_ = rtspClient_->getTotalFrames();
+
+            std::cout << "[ClientUI] totalFrames_ = " << totalFrames_ << "\n";
+
             timelineSlider_->setEnabled(true);
-
-            int initialMax = 25000;  // ~16 phút @ 25 FPS
-            timelineSlider_->setMaximum(initialMax);
-
-            // totalFrames_ = 10000; // Placeholder
-            // timelineSlider_->setMaximum(totalFrames_);
-
-            // int totalSeconds = totalFrames_ / 25; // Assume 25 FPS
-            // totalTimeLabel_->setText(formatTime(totalSeconds));
+            timelineSlider_->setMaximum(totalFrames_);
 
             std::cout << "[SETUP] Success! Session ID: " << sessionId << "\n";
             Logger::getInstance().log(LogLevel::INFO,
@@ -605,6 +601,9 @@ void ClientUI::onTimelineSliderReleased() {
     int targetFrame = timelineSlider_->value();
     LOG_INFO("Timeline seek to frame: " + std::to_string(targetFrame));
 
+    std::cout << "USER SEEK: " << currentFrame_ << " -> " << targetFrame << "\n";
+    LOG_INFO("Timeline seek to frame: " + std::to_string(targetFrame));
+    
     currentFrame_ = targetFrame;
 }
 
@@ -616,7 +615,20 @@ void ClientUI::updateTimeline() {
 
     if (!isSeekingTimeline_ && state_ == State::PLAYING) {
         try {
+            int oldSliderValue = timelineSlider_->value();
+            
             timelineSlider_->setValue(currentFrame_);
+            int newSliderValue = timelineSlider_->value();
+            
+            if (newSliderValue == 0 && currentFrame_ > 10) {
+                std::cout << "   TIMELINE RESET BUG DETECTED!\n";
+                std::cout << "   currentFrame_: " << currentFrame_ << "\n";
+                std::cout << "   oldSliderValue: " << oldSliderValue << "\n";
+                std::cout << "   newSliderValue: " << newSliderValue << "\n";
+                std::cout << "   slider maximum: " << timelineSlider_->maximum() << "\n";
+                LOG_ERROR("Timeline reset bug: currentFrame=" + std::to_string(currentFrame_) 
+                         + ", sliderValue=" + std::to_string(newSliderValue));
+            }
 
             // Cache buffer size để tránh gọi nhiều lần
             size_t bufferSize = frameBuffer_->size();

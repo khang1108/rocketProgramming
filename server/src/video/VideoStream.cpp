@@ -84,3 +84,60 @@ bool VideoStream::hasMoreFrames() const {
     int c = const_cast<std::ifstream&>(videoFile_).peek();
     return c != EOF;
 }
+int VideoStream::countFrames() {
+    if (!videoFile_.is_open()) {
+        std::cerr << "[VideoStream] countFrames: file not open\n";
+        return 0;
+    }
+
+    videoFile_.clear();
+    videoFile_.seekg(0, std::ios::beg);
+
+    int frameCount = 0;
+
+    while (true) {
+        char header[6] = {0};
+
+        videoFile_.read(header, 5);
+        std::streamsize n = videoFile_.gcount();
+
+        if (n == 0) {
+            break;
+        }
+
+        if (n != 5) {
+            std::cerr << "[VideoStream] Incomplete header: read " << n << " bytes\n";
+            break;
+        }
+
+        int frameLength = 0;
+        try {
+            frameLength = std::stoi(header);
+        } catch (const std::exception& e) {
+            std::cerr << "[VideoStream] Invalid header: '" << header
+                      << "' (" << e.what() << ")\n";
+            break;
+        }
+
+        if (frameLength <= 0 || frameLength > 100000) {
+            std::cerr << "[VideoStream] Invalid frame length in countFrames: "
+                      << frameLength << " (header='" << header << "')\n";
+            break;
+        }
+
+        videoFile_.seekg(frameLength, std::ios::cur);
+        if (!videoFile_) {
+            std::cerr << "[VideoStream] Unexpected EOF while skipping frame payload\n";
+            break;
+        }
+
+        ++frameCount;
+    }
+
+    // Reset lại cho nextFrame() dùng từ đầu
+    videoFile_.clear();
+    videoFile_.seekg(0, std::ios::beg);
+
+    std::cout << "[VideoStream] Total frames counted = " << frameCount << "\n";
+    return frameCount;
+}

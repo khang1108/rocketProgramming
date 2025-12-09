@@ -175,35 +175,7 @@ class VideoStream {
      */
     int getCurrentFrameNumber() const { return frameNumber_; }
 
-    int countFrames() {
-      if(!videoFile_) return 0;
-
-      int frameCount = 0;
-
-      videoFile_.clear();
-      videoFile_.seekg(0, std::ios::beg);
-
-      while(true){
-        char sizeBuf[6] = {0};
-        
-        videoFile_.read(sizeBuf, 5);
-        if(!videoFile_) break;
-
-        int frameSize = std::atoi(sizeBuf);
-        if(frameSize <= 0){
-          std::cerr << "[VideoStream] Invalid frame size: " << sizeBuf << "\n";
-          break;
-        }
-
-        videoFile_.seekg(frameSize, std::ios::cur);
-        if(!videoFile_){
-          std::cerr << "[VideoStream] Unexpected EOF while skipping frame\n";
-          break;
-        }
-        ++frameCount;
-      }
-      return frameCount;
-    }
+    int countFrames();
 };
 
 #endif

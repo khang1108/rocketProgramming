@@ -95,6 +95,8 @@ class RTSPClient {
     int clientRTPPort_;  ///< Local port for receiving RTP
     int serverRTPPort_;  ///< Server RTP port (from SETUP response)
 
+    int totalFrames_ = 0;
+
     std::string rtspUri_;
 
     /**
@@ -302,6 +304,8 @@ class RTSPClient {
      * @return State name ("INIT", "READY", "PLAYING")
      */
     std::string getStateString() const;
+
+    int getTotalFrames() const {return totalFrames_;}
 };
 
 #endif

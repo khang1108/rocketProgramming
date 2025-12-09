@@ -1,6 +1,7 @@
 #include "network/ServerWorker.hpp"
 #include <random>
 #include "rtp/EncodingStrategy.hpp"
+#include "video/VideoStream.hpp"
 #include "utils/Logger.hpp"
 
 #ifdef ERROR
@@ -117,11 +118,20 @@ std::string ServerWorker::handleSetup(const RTSPMessage::Request& request) {
 
     LOG_INFO("SETUP successful, Session ID: " + sessionId_);
 
+    int totalFrames_ = videoStream_->countFrames();
+    std::cout << "[ServerWorker] Total Frames: " << totalFrames_ << '\n';
+    if(totalFrames_ <= 0){
+        std::cerr << "[ServerWorker] Cannot read frames in file\n";
+        LOG_ERROR("[ServerWorker] Cannot read frames in file");
+        return "";
+    }
+
     return RTSPMessage::buildResponse(
         200, "OK", request.cseq,
         {{"Session", sessionId_},
          {"Transport", "RTP/AVP/UDP;unicast;client_port=" + std::to_string(clientRTPPort_) + "-" +
-                           std::to_string(clientRTPPort_ + 1) + ";server_port=0-0"}});
+                           std::to_string(clientRTPPort_ + 1) + ";server_port=" + std::to_string(clientRTPPort_)},
+         {"X-Total-Frames", std::to_string(totalFrames_)}});
 }
 
 std::string ServerWorker::handlePlay(const RTSPMessage::Request& request) {
