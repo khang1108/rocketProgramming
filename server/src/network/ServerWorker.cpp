@@ -92,24 +92,11 @@ std::string ServerWorker::handleSetup(const RTSPMessage::Request& request) {
         return RTSPMessage::buildResponse(400, "Bad Transport Header", request.cseq);
     }
 
-    // Parse RTSP URI to extract file path
-    // URL can be: "rtsp://127.0.0.1:8554/videos/movie.Mjpeg" or just "videos/movie.Mjpeg"
-    std::string filePath = request.url;
-
-    // If URL starts with rtsp://, extract the path after domain:port
-    if (filePath.find("rtsp://") == 0) {
-        size_t slashPos = filePath.find('/', 7);  // Skip "rtsp://"
-        if (slashPos != std::string::npos) {
-            filePath = filePath.substr(slashPos + 1);  // Get path after first /
-        }
-    }
-
-    LOG_INFO("SETUP request for file: " + filePath);
-
     try {
-        videoStream_ = std::make_unique<VideoStream>(filePath);
+        LOG_INFO("Opening video file in handleSetup: " + request.url);
+        videoStream_ = std::make_unique<VideoStream>(request.url);
     } catch (const std::exception& e) {
-        LOG_ERROR("Failed to open video file '" + filePath + "': " + std::string(e.what()));
+        LOG_ERROR("Failed to open video file: " + std::string(e.what()));
         return RTSPMessage::buildResponse(404, "File Not Found", request.cseq);
     }
 

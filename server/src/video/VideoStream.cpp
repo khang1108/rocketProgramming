@@ -6,6 +6,7 @@
 
 VideoStream::VideoStream(const std::string& filename) : frameNumber_(0), filename_(filename) {
     // Mở file ở chế độ đọc và nhị phân
+    std::cout << "[VideoStream] Opening file: " << filename << std::endl;
     videoFile_.open(filename, std::ios::in | std::ios::binary);
 
     if (!videoFile_.is_open()) {
@@ -17,7 +18,7 @@ VideoStream::VideoStream(const std::string& filename) : frameNumber_(0), filenam
         throw std::runtime_error("ERROR: Video rong");
     }
 
-    totalFrame_ = countFrames();
+    totalFrame_ = 0;
 }
 
 VideoStream::~VideoStream() {
@@ -27,7 +28,7 @@ VideoStream::~VideoStream() {
 }
 
 std::vector<uint8_t> VideoStream::nextFrame() {
-    if(!videoFile_.is_open()){
+    if (!videoFile_.is_open()) {
         throw std::runtime_error("[VideoStream Error] VideoFile not open!");
         LOG_ERROR("[VideoStream Error] VideoFile not open");
     }
@@ -38,9 +39,9 @@ std::vector<uint8_t> VideoStream::nextFrame() {
     int prevByteInt = EOF;
     int currByteInt;
 
-    while(true){
+    while (true) {
         currByteInt = videoFile_.get();
-        if(currByteInt == EOF){
+        if (currByteInt == EOF) {
             if (!foundSOI) {
                 throw std::runtime_error("ERROR: No more frames (EOF before SOI)");
             } else {
@@ -50,18 +51,17 @@ std::vector<uint8_t> VideoStream::nextFrame() {
 
         uint8_t currByte = static_cast<uint8_t>(currByteInt);
 
-        if(!foundSOI){
-            if(prevByteInt == 0xFF && currByte == 0xD8){
+        if (!foundSOI) {
+            if (prevByteInt == 0xFF && currByte == 0xD8) {
                 frame.clear();
                 frame.push_back(0xFF);
                 frame.push_back(0xD8);
                 foundSOI = true;
             }
-        }
-        else{
+        } else {
             frame.push_back(currByte);
 
-            if(prevByteInt == 0xFF && currByte == 0xD9){
+            if (prevByteInt == 0xFF && currByte == 0xD9) {
                 break;
             }
         }
@@ -69,7 +69,7 @@ std::vector<uint8_t> VideoStream::nextFrame() {
         prevByteInt = currByte;
     }
 
-    if(frame.empty()){
+    if (frame.empty()) {
         throw std::runtime_error("[Video Stream Error] Empty frame read");
         LOG_ERROR("[Video Stream Error] Empty frame read");
     }
@@ -112,21 +112,20 @@ int VideoStream::countFrames() {
 
     while (true) {
         currByteInt = videoFile_.get();
-        if(currByteInt == EOF){
+        if (currByteInt == EOF) {
             break;
         }
 
         uint8_t currByte = static_cast<uint8_t>(currByteInt);
 
-        if(!insideFrame){
-            if(prevByteInt == 0xFF && currByte == 0xD8){
+        if (!insideFrame) {
+            if (prevByteInt == 0xFF && currByte == 0xD8) {
                 insideFrame = true;
             }
-            else{
-                if(prevByteInt == 0xFF && currByte == 0xD9){
-                    frameCount++;
-                    insideFrame = false;
-                }
+        } else {  // insideFrame == true
+            if (prevByteInt == 0xFF && currByte == 0xD9) {
+                frameCount++;
+                insideFrame = false;
             }
         }
 
