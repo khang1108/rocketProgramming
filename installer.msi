@@ -1,0 +1,28 @@
+; NSIS Installer Script
+Name "RTSP Streaming"
+OutFile "RTSPSetup.exe"
+InstallDir "$PROGRAMFILES\RTSPStreaming"
+
+Section "Main"
+    ; Check if Qt6 installed
+    ReadRegStr $0 HKLM "SOFTWARE\Qt\Qt6" "InstallDir"
+    StrCmp $0 "" InstallQt ContinueInstall
+    
+    InstallQt:
+        MessageBox MB_YESNO "Qt6 not found. Download and install?" IDYES DownloadQt IDNO EndInstall
+        
+        DownloadQt:
+            NSISdl::download "https://download.qt.io/official_releases/online_installers/qt-unified-windows-x64-online.exe" "$TEMP\qt-installer.exe"
+            ExecWait "$TEMP\qt-installer.exe"
+    
+    ContinueInstall:
+        SetOutPath $INSTDIR
+        File "build\bin\server.exe"
+        File "build\bin\client.exe"
+        File /r "build\bin\*.dll"
+        
+        CreateShortcut "$DESKTOP\RTSP Client.lnk" "$INSTDIR\client.exe"
+        CreateShortcut "$DESKTOP\RTSP Server.lnk" "$INSTDIR\server.exe"
+    
+    EndInstall:
+SectionEnd
