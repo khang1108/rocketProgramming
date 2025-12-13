@@ -37,7 +37,7 @@ std::vector<uint8_t> VideoStream::nextFrame() {
     bool foundSOI = false;
 
     int prevByteInt = EOF;
-    int currByteInt;q
+    int currByteInt;
 
     while (true) {
         currByteInt = videoFile_.get();

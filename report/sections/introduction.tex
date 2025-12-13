@@ -1,0 +1,23 @@
+\section*{Giới thiệu}
+Với sự phát triển của công nghệ số và nhu cầu giải trí của con người tăng cao, đặc biệt khi cuộc cách mạng 4.0, sự bùng nổ của Internet thì vai trò của Mạng Máy Tính trở nên ngày càng quan và có nhiều ứng dụng thực tiễn chẳng hạn là như là nhắn tin trực tuyến, làm việc trực tuyến và đặc biệt là trao đổi các thông tin, dữ liệu thông quan mạng. Đặc biệt trong số đó thì việc truyền các Video hoặc Ảnh thông qua được sử dụng ngày phổ biến trong các ứng dụng mạng xã hội như Facebook, TikTok và Youtube. 
+
+Trong dự án này, nhóm đã tìm hiểu và thực hiện hóa một hệ thống đơn giản cho phép hai ứng dụng mạng có thể giao tiếp với nhau thông qua giao tiếp RTSP/RTP để có thể phát một video trực tuyến. Dự án này được làm với mục đích học tập và hiểu rõ hơn về các giao thức cũng như là cách hoạt động của các ứng dụng trong thực tế, mặt khác, dự án này cũng chỉ là mô phỏng lại cách phát trực tiếp một video giữa các ứng dụng nên được xây dựng không quá phức tạp và tối ưu.
+
+Toàn bộ mã nguồn của dự án được xây dựng bằng ngôn ngữ \code{C++ 17}, sử dụng \code{CMake} để có thể build trên cả Window và Linux, cũng như là sử dụng các thư viện \code{winsock2} và \code{POSIX sockets} để tạo các socket cho việc giao tiếp giữa các ứng dụng. Bên cạnh đó, nhóm cũng đã áp dụng các kiến về \code{Design Pattern} cho dự án với mục đích là mã nguồn của dự án có thể tái sử dụng, sạch sẽ và dễ đọc, dễ sửa lỗi cũng như là tối ưu trong quá trình hoạt động.
+
+Để có thể có mọt giao diện cho ứng dụng của bên phía \code{client} thì nhóm đã sử dụng \code{Qt6} để tạo ra một giao diện đơn giản và dễ sử dụng cho người dùng. Toàn bộ quá trình, giao thức, phản hồi và yêu cầu của \code{server} và \code{client} được dựa trên toàn bộ yêu cầu được đính kèm trong file \code{Socket\_2526} của thầy Lê Hà Minh \cite{lehaminh2024socket}. Nhóm xin chân thành cảm ơn thầy đã hỗ trợ và cung cấp tài liệu để nhóm có thể hoàn thành đồ án này một cách tốt đẹp nhất.
+
+\begin{flushright}
+\begin{minipage}{0.3\textwidth}
+\centering 
+\textbf{Nhóm Trưởng}\\
+\textit{(Chữ ký và họ tên)}\\[0.5cm]
+\textit{\large Khang}\\  
+\textit{Nguyễn Phúc Khang}\\
+\end{minipage}newpage
+\hspace{1cm}
+\end{flushright}
+\vspace{2cm}
+\begin{center} {\footnotesize Ho Chi Minh City, 12/2025}
+\end{center}
+\newpage

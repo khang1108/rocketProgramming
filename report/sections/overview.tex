@@ -1,0 +1,41 @@
+\section{Cơ sở lý thuyết}
+Để thực hiện đồ án này, nhóm đã tập trung nghiên cứu các kiến thức nền tảng về Mạng Máy Tính, đặc biệt là hai giao thức chuyên dụng cho mục đích truyền tải video (Streaming Video) là \textbf{RTP} và \textbf{RTSP}. Bên cạnh đó, nhóm cũng tìm hiểu quy trình quản lý dự án thực tế, cách thức tổ chức vận hành, cũng như áp dụng các nguyên lý của \textit{Lập trình hướng đối tượng} (Object-Oriented Programming - OOP) để thiết kế mã nguồn tối ưu, dễ bảo trì và có khả năng tái sử dụng cao.
+
+\subsection{Tổng quan về Socket}
+Phần lớn các ứng dụng mạng bao gồm các cặp tiến trình giao tiếp với nhau: một tiến trình thực hiện việc gửi (\textit{send}) và tiến trình còn lại thực hiện việc nhận (\textit{receive}). Các thông điệp được truyền đi giữa các tiến trình bắt buộc phải thông qua một giao diện phần mềm (\textit{software interface}) nằm bên dưới, được gọi là \textbf{Socket} \cite{kurose2021computer}.
+
+\FloatBarrier
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/application_proceses.jpg}
+    \caption{Mô hình giao tiếp giữa các tiến trình thông qua Socket}
+    \label{fig:application_processes}
+\end{figure}
+
+Như trong Hình \ref{fig:application_processes}, hai tiến trình A và B giao tiếp với nhau thông qua Socket để gửi và nhận dữ liệu. Cơ chế này còn được biết đến như là Giao diện lập trình ứng dụng (API) \cite{kurose2021computer}. Socket đóng vai trò như "cánh cửa" của một ngôi nhà; bất kỳ dữ liệu nào muốn đi vào hoặc đi ra khỏi ứng dụng đều phải đi qua cánh cửa này.
+Trong phạm vi dự án, nhóm đã xây dựng lớp (class) \texttt{Socket} nhằm đóng gói các chức năng khởi tạo và quản lý kết nối, phục vụ cho việc trao đổi dữ liệu giữa các tiến trình trong mạng.
+
+\subsection{Giao thức RTP và RTSP}
+Hiện nay, hai giao thức phổ biến được sử dụng rộng rãi để phát video trực tuyến qua mạng Internet là \textbf{Real-Time Transport Protocol (RTP)} và \textbf{Real-Time Streaming Protocol (RTSP)}. 
+RTSP đóng vai trò điều khiển, gửi các lệnh đến máy chủ như thiết lập (\texttt{SETUP}), phát (\texttt{PLAYING}), tạm dừng (\texttt{PAUSE}) và kết thúc (\texttt{TEARDOWN}). Trong khi đó, RTP đóng vai trò là phương tiện vận chuyển dữ liệu truyền thông (âm thanh, hình ảnh), đảm nhiệm các tác vụ như phân mảnh gói tin, sắp xếp lại thứ tự, và giám sát chất lượng dịch vụ.
+
+\paragraph*{RTSP - Real Time Streaming Protocol}
+RTSP được thiết kế để thiết lập và điều khiển một hoặc nhiều luồng phương tiện liên tục được đồng bộ hóa thời gian \cite{rfc2326}. Bản thân giao thức này thường không trực tiếp truyền tải dữ liệu (payload), mặc dù việc truyền xen kẽ giữa luồng phương tiện và luồng điều khiển là khả thi. Nói cách khác, RTSP hoạt động như một "\textit{bộ điều khiển từ xa qua mạng}" dành cho các máy chủ đa phương tiện.
+
+Khác với HTTP, RTSP không có khái niệm kết nối tầng giao vận cố định. Thay vào đó, máy chủ duy trì một phiên làm việc (\textit{session}) được xác định bởi một mã định danh. Một phiên làm việc RTSP có thể tồn tại qua nhiều kết nối TCP khác nhau (ví dụ: mở kết nối mới để gửi lệnh \texttt{PAUSE} sau một khoảng thời gian dài phát video).
+
+\paragraph*{RTP - Real Time Transport Protocol}
+Được định nghĩa trong \href{https://datatracker.ietf.org/doc/html/rfc3550}{RFC 3550}, RTP là chuẩn giao thức của IETF cho phép kết nối và trao đổi dữ liệu đòi hỏi tính thời gian thực (real-time). RTP cung cấp các chức năng vận chuyển dữ liệu đầu-cuối (\textit{end-to-end}) \cite{rfc3550}. 
+Cần lưu ý rằng RTP không đảm nhiệm việc đặt trước tài nguyên mạng hay đảm bảo chất lượng dịch vụ (QoS). Quá trình truyền tải dữ liệu thường được bổ trợ bởi giao thức điều khiển \textbf{RTCP} (RTP Control Protocol), cho phép giám sát quá trình phân phối dữ liệu và cung cấp thông tin phản hồi trong các mạng quy mô lớn.
+
+\subsection{Giao thức TCP và UDP}
+Trong mạng máy tính, các thiết bị đầu cuối và thiết bị chuyển mạch đều vận hành các giao thức để điều khiển việc gửi và nhận dữ liệu \cite{kurose2021computer}. Trong bộ giao thức TCP/IP, hai giao thức tầng giao vận (Transport Layer) quan trọng nhất là \textbf{TCP} (Transmission Control Protocol) và \textbf{UDP} (User Datagram Protocol).
+
+\paragraph*{TCP (Transmission Control Protocol)}:
+Đây là giao thức cung cấp dịch vụ \textbf{hướng kết nối} (connection-oriented) cho các ứng dụng. Dịch vụ này đảm bảo vận chuyển tin nhắn từ tầng ứng dụng đến đích một cách tin cậy và thực hiện \textbf{kiểm soát luồng} (flow control) để đảm bảo bên gửi và bên nhận đồng bộ về tốc độ xử lý. Đồng thời, TCP phân chia các thông điệp dài thành các đoạn nhỏ hơn (segments) và cung cấp cơ chế \textbf{kiểm soát tắc nghẽn} (congestion control), cho phép nguồn phát tự động giảm tốc độ truyền khi mạng gặp sự cố nghẽn.
+
+\paragraph*{UDP (User Datagram Protocol)}:
+Trái ngược với TCP, UDP cung cấp dịch vụ \textbf{phi kết nối} (connectionless). Đây là một dịch vụ tối giản, không đảm bảo độ tin cậy trong truyền tin, không có cơ chế kiểm soát luồng hay kiểm soát tắc nghẽn. Tuy nhiên, nhờ sự tinh giản này mà UDP có tốc độ truyền tải nhanh hơn, phù hợp với các ứng dụng thời gian thực.
+
+\paragraph*{Cơ chế vận chuyển}:
+Tầng mạng (Network Layer) của Internet chịu trách nhiệm di chuyển các gói tin (được gọi là \texttt{datagrams}) từ máy chủ này sang máy chủ khác. Tại phía gửi, giao thức tầng giao vận (TCP hoặc UDP) sẽ đóng gói dữ liệu thành các \texttt{segment}, gán địa chỉ đích và chuyển xuống tầng mạng để thực hiện quá trình truyền tải.
