@@ -1,8 +1,8 @@
 #include "network/ServerWorker.hpp"
 #include <random>
 #include "rtp/EncodingStrategy.hpp"
-#include "video/VideoStream.hpp"
 #include "utils/Logger.hpp"
+#include "video/VideoStream.hpp"
 
 #ifdef ERROR
 #undef ERROR
@@ -63,8 +63,13 @@ void ServerWorker::handleRtspRequests() {
                 } catch (...) {
                 }
             }
+        } catch (const SocketTimeout& e) {
+            // Timeout is normal when client is playing from buffer
+            // Just continue waiting for next request (e.g., PLAY for rewind or TEARDOWN)
+            continue;
         } catch (const SocketException& e) {
-            LOG_INFO("Worker " + std::to_string(clientId_) + ": socket closed");
+            LOG_INFO("Worker " + std::to_string(clientId_) + ": socket error - " +
+                     std::string(e.what()));
             break;
         } catch (const std::exception& e) {
             LOG_ERROR("Worker " + std::to_string(clientId_) + " error " + e.what());
@@ -107,7 +112,7 @@ std::string ServerWorker::handleSetup(const RTSPMessage::Request& request) {
 
     int totalFrames_ = videoStream_->countFrames();
     std::cout << "[ServerWorker] Total Frames: " << totalFrames_ << '\n';
-    if(totalFrames_ <= 0){
+    if (totalFrames_ <= 0) {
         std::cerr << "[ServerWorker] Cannot read frames in file\n";
         LOG_ERROR("[ServerWorker] Cannot read frames in file");
         return "";
@@ -117,7 +122,8 @@ std::string ServerWorker::handleSetup(const RTSPMessage::Request& request) {
         200, "OK", request.cseq,
         {{"Session", sessionId_},
          {"Transport", "RTP/AVP/UDP;unicast;client_port=" + std::to_string(clientRTPPort_) + "-" +
-                           std::to_string(clientRTPPort_ + 1) + ";server_port=" + std::to_string(clientRTPPort_)},
+                           std::to_string(clientRTPPort_ + 1) +
+                           ";server_port=" + std::to_string(clientRTPPort_)},
          {"X-Total-Frames", std::to_string(totalFrames_)}});
 }
 
@@ -272,9 +278,10 @@ ServerWorker::ServerWorker(int clientId, std::unique_ptr<Socket> rtspSocket)
       ssrc_(0),
       streaming_(false) {
     // Set timeout for client socket to keep connection alive between requests
+    // Longer timeout to allow client to finish playing from buffer before rewinding
     if (socket_) {
-        socket_->setTimeout(30000);  // 30 seconds timeout for RTSP requests
-        LOG_INFO("Worker " + std::to_string(clientId_) + " socket timeout set to 30s");
+        socket_->setTimeout(300000);  // 5 minutes timeout for RTSP requests
+        LOG_INFO("Worker " + std::to_string(clientId_) + " socket timeout set to 5 minutes");
     }
 
     std::random_device rd;
@@ -283,7 +290,7 @@ ServerWorker::ServerWorker(int clientId, std::unique_ptr<Socket> rtspSocket)
     ssrc_ = dis(gen);
 
     // Khởi tạo timer cho 25 FPS (40ms)
-    frameTimer_ = std::make_unique<Timer>(40);
+    frameTimer_ = std::make_unique<Timer>(10);
 }
 
 ServerWorker::~ServerWorker() {

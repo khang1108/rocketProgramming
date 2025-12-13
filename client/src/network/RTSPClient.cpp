@@ -274,8 +274,7 @@ bool RTSPClient::sendPause() {
         return false;
 
     std::ostringstream req;
-    req << "PAUSE RTSP/1.0\r\n";
-    req << "PLAY " << rtspUri_ << " RTSP/1.0\r\n";
+    req << "PAUSE " << rtspUri_ << " RTSP/1.0\r\n";
     req << "CSeq: " << ++cseq_ << "\r\n";
     req << "Session: " << sessionId_ << "\r\n";
     req << "\r\n";

@@ -70,7 +70,8 @@ ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::strin
 
     prebufferLabel_ = new QLabel("Buffer:");
     prebufferBar_ = new QProgressBar();
-    prebufferBar_->setMaximum(PREBUFFER_FRAMES);
+    // Default until we know totalFrames_ after SETUP
+    prebufferBar_->setMaximum(std::max(1, static_cast<int>(PREBUFFER_FRAMES)));
     prebufferBar_->setValue(0);
     prebufferBar_->setTextVisible(true);
     prebufferBar_->setFormat("%v/%m frames");
@@ -88,7 +89,7 @@ ClientUI::ClientUI(const std::string& serverIP, int serverPort, const std::strin
 
     timelineSlider_ = new BufferedSlider(Qt::Horizontal);
     timelineSlider_->setMinimum(0);
-    timelineSlider_->setMaximum(totalFrames_);  // Will update later
+    timelineSlider_->setMaximum(PREBUFFER_FRAMES);  // Will update later
     timelineSlider_->setValue(0);
     timelineSlider_->setBufferedValue(0);
     timelineSlider_->setEnabled(false);
@@ -204,13 +205,20 @@ void ClientUI::onSetupClicked() {
         if (success) {
             currentFrame_ = 0;
             prebufferReady_ = false;
-            if (frameBuffer_) frameBuffer_->clear();
+            if (frameBuffer_)
+                frameBuffer_->clear();
 
             std::string sessionId = rtspClient_->getSessionId();
             state_ = State::READY;  // INIT → READY
             updateButtonStates();
 
             totalFrames_ = rtspClient_->getTotalFrames();
+            // Align prebuffer progress bar max with total frames (fallback to default)
+            if (prebufferBar_) {
+                int prebufferMax =
+                    (totalFrames_ > 0) ? totalFrames_ : static_cast<int>(PREBUFFER_FRAMES);
+                prebufferBar_->setMaximum(prebufferMax);
+            }
 
             std::cout << "[ClientUI] totalFrames_ = " << totalFrames_ << "\n";
 
@@ -242,18 +250,12 @@ void ClientUI::onPlayClicked() {
         bool success = rtspClient_->sendPlay();
 
         if (success) {
-            std::cout << "[DEBUG] onPlayClicked: sendPlay OK\n";
-            std::cout << "[DEBUG] RTPReceiver running before start(): " 
-                    << (rtpReceiver_ ? rtpReceiver_->isRunning() : -1) << "\n";
-
             if (rtpReceiver_ && !rtpReceiver_->isRunning()) {
-                std::cout << "[DEBUG] Calling rtpReceiver_->start()...\n";
                 rtpReceiver_->start();
-                std::cout << "[DEBUG] RTPReceiver running after start(): " 
-                        << rtpReceiver_->isRunning() << "\n";
             }
 
-            if(frameBuffer_->size() <= 0) prebufferReady_ = false;
+            if (frameBuffer_->size() <= 0)
+                prebufferReady_ = false;
 
             fps_ = 0;
             fpsStartTime_ = std::chrono::steady_clock::now();
@@ -319,12 +321,13 @@ void ClientUI::onTeardownClicked() {
         currentFrame_ = 0;
         fps_ = 0;
 
-        if(rtspClient_)  rtspClient_->sendTeardown();
+        if (rtspClient_)
+            rtspClient_->sendTeardown();
 
         rtspClient_.reset();
         rtpReceiver_.reset();
         frameReassembler_.reset();
-        
+
         try {
             rtspClient_ = std::make_unique<RTSPClient>(serverIP_, serverPort_);
             frameReassembler_ = std::make_unique<FrameReassembler>(frameBuffer_.get());
@@ -332,24 +335,22 @@ void ClientUI::onTeardownClicked() {
         } catch (const std::exception& e) {
             Logger::getInstance().log(
                 LogLevel::ERROR,
-                std::string("Failed to recreate RTSP client after TEARDOWN: ") + e.what()
-            );
+                std::string("Failed to recreate RTSP client after TEARDOWN: ") + e.what());
             state_ = State::INIT;
             updateButtonStates();
             statusLabel_->setText("Error: cannot reconnect to server");
             return;
         }
-            // 5. Reset state → INIT và update nút
-            state_ = State::INIT;
-            updateButtonStates();
+        // 5. Reset state → INIT và update nút
+        state_ = State::INIT;
+        updateButtonStates();
 
-            std::cout << "[TEARDOWN] Success! Ready for new SETUP\n";
-            Logger::getInstance().log(LogLevel::INFO, "TEARDOWN done, RTSP client recreated");
-        } catch (const std::exception& e) {
-            Logger::getInstance().log(LogLevel::ERROR,
-                                    std::string("TEARDOWN Failed: ") + e.what());
-            std::cerr << "[TEARDOWN] failed: " << e.what() << '\n';
-        }
+        std::cout << "[TEARDOWN] Success! Ready for new SETUP\n";
+        Logger::getInstance().log(LogLevel::INFO, "TEARDOWN done, RTSP client recreated");
+    } catch (const std::exception& e) {
+        Logger::getInstance().log(LogLevel::ERROR, std::string("TEARDOWN Failed: ") + e.what());
+        std::cerr << "[TEARDOWN] failed: " << e.what() << '\n';
+    }
 }
 
 QString ClientUI::makeStatusString() const {
@@ -443,7 +444,7 @@ void ClientUI::updateFrame() {
         updatePrebufferIndicator();
     } catch (const std::exception& e) {
         LOG_ERROR("Exception in updatePrebufferIndicator: " + std::string(e.what()));
-        return;  
+        return;
     }
 
     if (state_ != State::PLAYING) {
@@ -453,6 +454,30 @@ void ClientUI::updateFrame() {
     size_t currentBufferSize = frameBuffer_->size();
 
     if (currentBufferSize == 0) {
+        if (totalFrames_ > 0 && currentFrame_ >= totalFrames_) {
+            LOG_INFO("[BUFFER] Detected end-of-video (buffer empty & all frames played)");
+            // Notify server that playback truly ended
+            try {
+                if (rtspClient_) {
+                    rtspClient_->sendTeardown();
+                }
+            } catch (const std::exception& e) {
+                LOG_WARN(std::string("[BUFFER] TEARDOWN after end failed: ") + e.what());
+            }
+
+            state_ = State::READY;
+            prebufferReady_ = false;
+
+            if (rtpReceiver_)
+                rtpReceiver_->stop();
+            if (frameBuffer_)
+                frameBuffer_->clear();
+
+            statusLabel_->setText("Video ended. Click PLAY to restart.");
+            updateButtonStates();
+            return;
+        }
+
         bool isEndOfVideo = (totalFrames_ > 0 && currentFrame_ >= totalFrames_ - 1);
 
         if (isEndOfVideo) {
@@ -464,15 +489,17 @@ void ClientUI::updateFrame() {
 
             fps_ = 0;
 
-            if (rtpReceiver_) rtpReceiver_->stop();
-            if (frameBuffer_) frameBuffer_->clear();
+            if (rtpReceiver_)
+                rtpReceiver_->stop();
+            if (frameBuffer_)
+                frameBuffer_->clear();
 
             statusLabel_->setText("Video ended. Click PLAY to restart.");
             if (videoLabel_) {
                 videoLabel_->setText("End of File");
                 videoLabel_->setStyleSheet("background-color: black; color: white;");
                 videoLabel_->setAlignment(Qt::AlignCenter);
-                videoLabel_->setPixmap(QPixmap()); 
+                videoLabel_->setPixmap(QPixmap());
             }
 
             updateButtonStates();
@@ -490,11 +517,11 @@ void ClientUI::updateFrame() {
         }
 
         emptyCount++;
-        if (emptyCount > 250) { 
+        if (emptyCount > 250) {
             std::cout << "[BUFFER] Buffer empty for 5 seconds - VIDEO ENDED\n";
             LOG_INFO("[BUFFER] Buffer empty for 5 seconds - stopping playback");
 
-                // Immediately change state (this stops updateFrame from continuing)
+            // Immediately change state (this stops updateFrame from continuing)
             state_ = State::READY;
             prebufferReady_ = false;
             emptyCount = 0;
@@ -510,20 +537,20 @@ void ClientUI::updateFrame() {
                 std::cout << "[BUFFER] Clearing frame buffer...\n";
                 frameBuffer_->clear();
             }
-            
-            statusLabel_->setText("⏹️ Video ended. Click PLAY to restart.");
+
+            statusLabel_->setText("Video ended. Click PLAY to restart.");
             updateButtonStates();
 
             return;
         } else {
-            statusLabel_->setText(QString("⏸️ Rebuffering... 0/%1 frames (%2s)")
+            statusLabel_->setText(QString("Rebuffering... 0/%1 frames (%2s)")
                                       .arg(PREBUFFER_FRAMES)
                                       .arg(emptyCount * 40 / 1000.0, 0, 'f', 1));
         }
 
         prebufferReady_ = false;
         return;
-    } 
+    }
 
     if (!prebufferReady_) {
         size_t bufferSize = frameBuffer_->size();
@@ -633,7 +660,7 @@ void ClientUI::onTimelineSliderReleased() {
 
     std::cout << "USER SEEK: " << currentFrame_ << " -> " << targetFrame << "\n";
     LOG_INFO("Timeline seek to frame: " + std::to_string(targetFrame));
-    
+
     currentFrame_ = targetFrame;
 }
 
@@ -674,9 +701,8 @@ void ClientUI::updateTimeline() {
             static int logCount = 0;
             if (++logCount % 25 == 0) {
                 std::cout << "[TIMELINE] Current: " << clampedCurrent
-                        << " | Buffered: " << bufferedPos
-                        << " | Slider max: " << maxFrames
-                        << " | Buffer size: " << bufferSize << " frames\n";
+                          << " | Buffered: " << bufferedPos << " | Slider max: " << maxFrames
+                          << " | Buffer size: " << bufferSize << " frames\n";
             }
 
             timelineSlider_->blockSignals(false);
