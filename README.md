@@ -52,10 +52,10 @@ python setup.py
 ```
 
 The setup script will:
-- ✅ Detect your operating system
-- ✅ Check for Qt6 installation
-- ✅ Guide you through Qt6 installation if needed
-- ✅ Build the project automatically
+- Detect your operating system
+- Check for Qt6 installation
+- Guide you through Qt6 installation if needed
+- Build the project automatically
 
 #### Manual Setup
 
@@ -81,7 +81,6 @@ pacman -S mingw-w64-x86_64-qt6-base \
           mingw-w64-x86_64-ninja \
           mingw-w64-x86_64-gcc
 ```
-- Detailed guide: [SETUP_WINDOWS.md](SETUP_WINDOWS.md)
 - Alternative: Qt.io installer (3-5 GB, requires Qt account)
 
 **macOS**
