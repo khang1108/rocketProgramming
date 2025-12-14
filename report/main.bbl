@@ -41,9 +41,4 @@ H.~Schulzrinne, S.~L. Casner, R.~Frederick, and V.~Jacobson, ``{RTP: A Transport
 L.~M. Berc, W.~C. Fenner, R.~Frederick, and S.~McCanne, ``{RTP Payload Format for JPEG-compressed Video},'' IETF, RFC 2435, Oct. 1998. [Online]. Available: \url{https://datatracker.ietf.org/doc/html/rfc2435}
 \BIBentrySTDinterwordspacing
 
-\bibitem{rfc4566}
-\BIBentryALTinterwordspacing
-M.~Handley, V.~Jacobson, and C.~Perkins, ``{SDP: Session Description Protocol},'' IETF, RFC 4566, Jul. 2006. [Online]. Available: \url{https://datatracker.ietf.org/doc/html/rfc4566}
-\BIBentrySTDinterwordspacing
-
 \end{thebibliography}

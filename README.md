@@ -38,15 +38,48 @@ The system enables **live video streaming** from a server to multiple clients ov
 
 ### 3. How to Run
 
-#### 1. Prerequisites
+#### Quick Setup (Automated)
 
-##### Linux (Ubuntu/Debian)
+##### All Platforms
 ```bash
-sudo apt install build-essential cmake g++
+# Linux/macOS
+python3 setup.py
+
+# Windows (double-click or run from CMD)
+setup_windows.bat
+# or
+python setup.py
 ```
-##### Linux (Arch)
+
+The setup script will:
+- ✅ Detect your operating system
+- ✅ Check for Qt6 installation
+- ✅ Guide you through Qt6 installation if needed
+- ✅ Build the project automatically
+
+#### Manual Setup
+
+##### 1. Prerequisites
+
+**Linux (Ubuntu/Debian)**
 ```bash
-sudo pacman -Sy base-devel cmake
+sudo apt install build-essential cmake g++ qt6-base-dev qt6-multimedia-dev
+```
+
+**Linux (Arch)**
+```bash
+sudo pacman -Sy base-devel cmake qt6-base qt6-multimedia
+```
+
+**Windows**
+- See detailed guide: [SETUP_WINDOWS.md](SETUP_WINDOWS.md)
+- Install Qt6 from: https://www.qt.io/download-qt-installer
+- Install Visual Studio 2019/2022 with C++ tools
+- Install CMake
+
+**macOS**
+```bash
+brew install qt@6 cmake
 ```
 ##### macOS
 ```bash

@@ -58,9 +58,10 @@ def check_qt6_installed():
     # Method 3: Check common installation paths
     qt_paths = {
         "windows": [
-            r"C:\Qt\6.5.0",
-            r"C:\Qt\6.6.0",
+            r"C:\Qt\6.8.0", r"C:\Qt\6.7.0", r"C:\Qt\6.6.0", r"C:\Qt\6.5.0",
+            r"C:\Qt\6.4.0", r"C:\Qt\6.3.0", r"C:\Qt\6.2.0",
             r"C:\Program Files\Qt",
+            r"C:\Qt6",
         ],
         "linux": [
             "/usr/lib/qt6",
@@ -154,7 +155,7 @@ def install_qt6_windows():
     # Install Qt6
     try:
         print("   [INFO] Installing Qt6 via Chocolatey package manager")
-        subprocess.run(["choco", "install", "qt6-base", "-y"], 
+        subprocess.run(["choco", "install", "qt6-sdk", "-y"], 
                       check=True, shell=True)
         print("   [SUCCESS] Qt6 installation completed")
         return True

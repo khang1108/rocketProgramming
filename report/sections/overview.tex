@@ -287,6 +287,3 @@ Trong triển khai, payload giới hạn 1400 byte để tránh vượt MTU \cit
     \end{tabular}
 \end{table}
 \FloatBarrier
-
-\subsection{Ghi chú mở rộng}
-Nếu mở rộng, có thể bổ sung RTCP \cite{rfc3550} để phản hồi mất gói/jitter; thêm seek thật với Range \cite{rfc2326} và index keyframe; chuyển mã H.264/H.265 kèm SDP (Session Description Protocol) \cite{rfc4566}; hoặc thêm FEC (Forward Error Correction) và NACK (Negative Acknowledgment) cho môi trường suy hao cao. Các hướng này kế thừa nền tảng RTSP/RTP hiện có.
