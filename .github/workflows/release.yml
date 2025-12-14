@@ -1,0 +1,140 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Cài Qt 6
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.6.3'
+          host: ${{ runner.os }}
+          modules: 'qtbase qtdeclarative qtmultimedia'
+          cache: true
+
+      - name: Configure (CMake)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build (CMake)
+        run: cmake --build build --config Release -- -j
+
+      # ---- Windows: windeployqt + zip ----
+      - name: Bundle Qt (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        run: |
+          set PATH=%PATH%;%Qt6_DIR%/bin
+          cd build\bin
+          windeployqt client.exe
+          windeployqt server.exe
+          cd ..
+          powershell -Command "Compress-Archive -Path bin -DestinationPath ..\rtsp-windows.zip"
+
+      # ---- macOS: macdeployqt + zip .app ----
+      - name: Bundle Qt (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          export PATH="$Qt6_DIR/bin:$PATH"
+          # Bundle client
+          macdeployqt build/bin/client.app -qmldir=.
+          # Bundle server
+          macdeployqt build/bin/server.app -qmldir=.
+          cd build
+          zip -r ../rtsp-macos.zip bin/client.app bin/server.app
+
+      # ---- Linux: linuxdeployqt tạo AppImage tối giản ----
+      - name: Bundle Qt (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          set -e
+          export PATH="$Qt6_DIR/bin:$PATH"
+          cd build/bin
+          # Tạo .desktop tối thiểu cho client
+          cat > client.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=client
+          Exec=client
+          Icon=client
+          Categories=AudioVideo;
+          EOF
+          # Icon giả
+          touch client.png
+
+          wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-6-x86_64.AppImage
+          chmod +x linuxdeployqt-6-x86_64.AppImage
+          # AppImage cho client
+          ./linuxdeployqt-6-x86_64.AppImage client -appimage -bundle-non-qt-libs || true
+          mv client*.AppImage ../../rtsp-linux-client.AppImage
+
+          # AppImage cho server (dùng cùng .desktop giả)
+          cat > server.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=server
+          Exec=server 8554
+          Icon=server
+          Categories=AudioVideo;
+          EOF
+          touch server.png
+          ./linuxdeployqt-6-x86_64.AppImage server -appimage -bundle-non-qt-libs || true
+          mv server*.AppImage ../../rtsp-linux-server.AppImage
+          cd ../..
+          tar czf rtsp-linux.tar.gz rtsp-linux-client.AppImage rtsp-linux-server.AppImage
+
+      # Thu thập artifact
+      - name: Upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtsp-windows
+          path: rtsp-windows.zip
+
+      - name: Upload artifact (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtsp-macos
+          path: rtsp-macos.zip
+
+      - name: Upload artifact (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtsp-linux
+          path: rtsp-linux.tar.gz
+
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/rtsp-windows/rtsp-windows.zip
+            artifacts/rtsp-macos/rtsp-macos.zip
+            artifacts/rtsp-linux/rtsp-linux.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
