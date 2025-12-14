@@ -241,7 +241,7 @@ void ServerWorker::streamingLoop() {
                 break;
             }
         } else {
-            // ✅ Video hết → DỪNG, không auto-loop
+            // Video hết → DỪNG, không auto-loop
             LOG_INFO("Video ended, stopping playback (no auto-loop)");
             state_ = State::READY;  // PLAYING → READY
             // NOTE: Không set streaming_ = false, để thread vẫn alive

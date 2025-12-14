@@ -196,29 +196,39 @@ def build_project():
     """Build the project using CMake"""
     print("\n[BUILD] Initializing project build process...")
     
-    project_root = Path(__file__).parent
+    if getattr(sys, 'frozen', False):
+        executable_path = Path(sys.executable)
+        project_root = executable_path.parent.parent
+        print(f"   [INFO] Running from compiled binary: {executable_path}")
+        print(f"   [INFO] Project root detected: {project_root}")
+    else:
+        project_root = Path(__file__).parent
+        print(f"   [INFO] Running from Python script")
+        print(f"   [INFO] Project root: {project_root}")
+    
     build_dir = project_root / "build"
     
-    # Create build directory
+    cmake_file = project_root / "CMakeLists.txt"
+    if not cmake_file.exists():
+        print(f"   [ERROR] CMakeLists.txt not found at: {cmake_file}")
+        print(f"   [ERROR] Please run this from the project root directory")
+        return False
+    
     build_dir.mkdir(exist_ok=True)
     os.chdir(build_dir)
     
     try:
-        # Run CMake configure
         print("   [CONFIG] Configuring project with CMake...")
-        cmake_args = ["cmake", ".."]
+        cmake_args = ["cmake", str(project_root)] 
         
-        # Add generator for Windows
         if detect_platform() == "windows":
             cmake_args.extend(["-G", "Visual Studio 17 2022"])
         
         subprocess.run(cmake_args, check=True)
         
-        # Run CMake build
         print("   [COMPILE] Compiling project sources...")
         build_args = ["cmake", "--build", ".", "--config", "Release"]
         
-        # Add parallel jobs
         if detect_platform() != "windows":
             import multiprocessing
             jobs = multiprocessing.cpu_count()

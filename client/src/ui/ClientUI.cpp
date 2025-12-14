@@ -250,6 +250,19 @@ void ClientUI::onPlayClicked() {
         bool success = rtspClient_->sendPlay();
 
         if (success) {
+            // Reset playback position if video ended (server will rewind)
+            if (currentFrame_ >= totalFrames_) {
+                currentFrame_ = 0;
+                LOG_INFO("[PLAY] Restarting from beginning");
+
+                // Clear "End of Video" message
+                if (videoLabel_) {
+                    videoLabel_->clear();
+                    videoLabel_->setText("Loading video...");
+                    videoLabel_->setStyleSheet("background-color: black; color: white;");
+                }
+            }
+
             if (rtpReceiver_ && !rtpReceiver_->isRunning()) {
                 rtpReceiver_->start();
             }
@@ -327,6 +340,8 @@ void ClientUI::onTeardownClicked() {
         rtspClient_.reset();
         rtpReceiver_.reset();
         frameReassembler_.reset();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         try {
             rtspClient_ = std::make_unique<RTSPClient>(serverIP_, serverPort_);
@@ -456,15 +471,9 @@ void ClientUI::updateFrame() {
     if (currentBufferSize == 0) {
         if (totalFrames_ > 0 && currentFrame_ >= totalFrames_) {
             LOG_INFO("[BUFFER] Detected end-of-video (buffer empty & all frames played)");
-            // Notify server that playback truly ended
-            try {
-                if (rtspClient_) {
-                    rtspClient_->sendTeardown();
-                }
-            } catch (const std::exception& e) {
-                LOG_WARN(std::string("[BUFFER] TEARDOWN after end failed: ") + e.what());
-            }
 
+            // Don't TEARDOWN - keep session alive for replay
+            // Just change state to READY and wait for user to click PLAY
             state_ = State::READY;
             prebufferReady_ = false;
 
@@ -473,7 +482,15 @@ void ClientUI::updateFrame() {
             if (frameBuffer_)
                 frameBuffer_->clear();
 
-            statusLabel_->setText("Video ended. Click PLAY to restart.");
+            statusLabel_->setText("Video ended. Click PLAY to watch again.");
+
+            if (videoLabel_) {
+                videoLabel_->setText("End of Video - Click PLAY to restart");
+                videoLabel_->setStyleSheet("background-color: black; color: white;");
+                videoLabel_->setAlignment(Qt::AlignCenter);
+                videoLabel_->setPixmap(QPixmap());
+            }
+
             updateButtonStates();
             return;
         }
@@ -482,11 +499,10 @@ void ClientUI::updateFrame() {
 
         if (isEndOfVideo) {
             std::cout << "[BUFFER] End of stream detected\n";
+            LOG_INFO("[BUFFER] Video playback completed");
 
             state_ = State::READY;
-
             prebufferReady_ = false;
-
             fps_ = 0;
 
             if (rtpReceiver_)
@@ -494,9 +510,10 @@ void ClientUI::updateFrame() {
             if (frameBuffer_)
                 frameBuffer_->clear();
 
-            statusLabel_->setText("Video ended. Click PLAY to restart.");
+            statusLabel_->setText("Video ended. Click PLAY to watch again.");
+
             if (videoLabel_) {
-                videoLabel_->setText("End of File");
+                videoLabel_->setText("End of Video - Click PLAY to restart");
                 videoLabel_->setStyleSheet("background-color: black; color: white;");
                 videoLabel_->setAlignment(Qt::AlignCenter);
                 videoLabel_->setPixmap(QPixmap());
@@ -521,7 +538,7 @@ void ClientUI::updateFrame() {
             std::cout << "[BUFFER] Buffer empty for 5 seconds - VIDEO ENDED\n";
             LOG_INFO("[BUFFER] Buffer empty for 5 seconds - stopping playback");
 
-            // Immediately change state (this stops updateFrame from continuing)
+            // Change state to READY (session still active for replay)
             state_ = State::READY;
             prebufferReady_ = false;
             emptyCount = 0;
@@ -538,9 +555,16 @@ void ClientUI::updateFrame() {
                 frameBuffer_->clear();
             }
 
-            statusLabel_->setText("Video ended. Click PLAY to restart.");
-            updateButtonStates();
+            statusLabel_->setText("Video ended. Click PLAY to watch again.");
 
+            if (videoLabel_) {
+                videoLabel_->setText("End of Video - Click PLAY to restart");
+                videoLabel_->setStyleSheet("background-color: black; color: white;");
+                videoLabel_->setAlignment(Qt::AlignCenter);
+                videoLabel_->setPixmap(QPixmap());
+            }
+
+            updateButtonStates();
             return;
         } else {
             statusLabel_->setText(QString("Rebuffering... 0/%1 frames (%2s)")

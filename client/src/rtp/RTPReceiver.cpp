@@ -54,6 +54,10 @@ RTPReceiver::RTPReceiver(int rtpPort, FrameReassembler* frameReassembler)
 }
 RTPReceiver::~RTPReceiver() {
     stop();
+
+    if (socket_) {
+        socket_->close();
+    }
 }
 
 void RTPReceiver::start() {
@@ -68,6 +72,9 @@ void RTPReceiver::stop() {
         return;
     running_ = false;
     // Closing socket will cause receiveFrom to throw / unblock
+    if (socket_) {
+        socket_->close();
+    }
     if (receiverThread_.joinable())
         receiverThread_.join();
 }
