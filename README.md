@@ -71,11 +71,18 @@ sudo apt install build-essential cmake g++ qt6-base-dev qt6-multimedia-dev
 sudo pacman -Sy base-devel cmake qt6-base qt6-multimedia
 ```
 
-**Windows**
-- See detailed guide: [SETUP_WINDOWS.md](SETUP_WINDOWS.md)
-- Install Qt6 from: https://www.qt.io/download-qt-installer
-- Install Visual Studio 2019/2022 with C++ tools
-- Install CMake
+**Windows (via MSYS2 - Recommended)**
+```bash
+# Install MSYS2 from: https://www.msys2.org/
+# Then in MSYS2 MINGW64 terminal:
+pacman -S mingw-w64-x86_64-qt6-base \
+          mingw-w64-x86_64-qt6-multimedia \
+          mingw-w64-x86_64-cmake \
+          mingw-w64-x86_64-ninja \
+          mingw-w64-x86_64-gcc
+```
+- Detailed guide: [SETUP_WINDOWS.md](SETUP_WINDOWS.md)
+- Alternative: Qt.io installer (3-5 GB, requires Qt account)
 
 **macOS**
 ```bash
