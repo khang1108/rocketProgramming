@@ -155,7 +155,7 @@ def install_qt6_windows():
     # Install Qt6
     try:
         print("   [INFO] Installing Qt6 via Chocolatey package manager")
-        subprocess.run(["choco", "install", "qt6-sdk", "-y"], 
+        subprocess.run(["choco", "install", "qt-sdk", "-y"], 
                       check=True, shell=True)
         print("   [SUCCESS] Qt6 installation completed")
         return True
