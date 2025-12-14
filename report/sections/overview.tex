@@ -1,41 +1,292 @@
 \section{Cơ sở lý thuyết}
-Để thực hiện đồ án này, nhóm đã tập trung nghiên cứu các kiến thức nền tảng về Mạng Máy Tính, đặc biệt là hai giao thức chuyên dụng cho mục đích truyền tải video (Streaming Video) là \textbf{RTP} và \textbf{RTSP}. Bên cạnh đó, nhóm cũng tìm hiểu quy trình quản lý dự án thực tế, cách thức tổ chức vận hành, cũng như áp dụng các nguyên lý của \textit{Lập trình hướng đối tượng} (Object-Oriented Programming - OOP) để thiết kế mã nguồn tối ưu, dễ bảo trì và có khả năng tái sử dụng cao.
 
-\subsection{Tổng quan về Socket}
-Phần lớn các ứng dụng mạng bao gồm các cặp tiến trình giao tiếp với nhau: một tiến trình thực hiện việc gửi (\textit{send}) và tiến trình còn lại thực hiện việc nhận (\textit{receive}). Các thông điệp được truyền đi giữa các tiến trình bắt buộc phải thông qua một giao diện phần mềm (\textit{software interface}) nằm bên dưới, được gọi là \textbf{Socket} \cite{kurose2021computer}.
+Dự án hiện thực một hệ thống truyền phát video thời gian thực (RTSP/RTP) với các thành phần:
 
 \FloatBarrier
-\begin{figure}[h]
+\begin{table}[htbp]
     \centering
-    \includegraphics[width=0.7\textwidth]{images/application_proceses.jpg}
-    \caption{Mô hình giao tiếp giữa các tiến trình thông qua Socket}
-    \label{fig:application_processes}
-\end{figure}
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.65\textwidth}}
+        \toprule
+        \textbf{Thành phần} & \textbf{Mô tả} \\
+        \midrule
+        Kênh điều khiển & RTSP/TCP để thiết lập, điều khiển phiên (\texttt{SETUP}, \texttt{PLAY}, \texttt{PAUSE}, \texttt{TEARDOWN}) \\
+        Kênh dữ liệu & RTP/UDP để vận chuyển khung hình, hỗ trợ phân mảnh, đánh số thứ tự, đánh dấu thời gian \\
+        Bộ đệm phía client & Tiền tải (prebuffer), phát mượt, phục hồi gói đến không đúng thứ tự \\
+        Thiết kế hướng đối tượng & Đóng gói Socket, RTSP client/server, RTP encode/decode, chiến lược mã hoá/fragmentation \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\subsection{Socket và mô hình tiến trình giao tiếp}
+Mọi trao đổi giữa hai tiến trình mạng đều đi qua \textbf{Socket} \cite{kurose2021computer}. Socket là API cung cấp các chức năng sau:
 
-Như trong Hình \ref{fig:application_processes}, hai tiến trình A và B giao tiếp với nhau thông qua Socket để gửi và nhận dữ liệu. Cơ chế này còn được biết đến như là Giao diện lập trình ứng dụng (API) \cite{kurose2021computer}. Socket đóng vai trò như "cánh cửa" của một ngôi nhà; bất kỳ dữ liệu nào muốn đi vào hoặc đi ra khỏi ứng dụng đều phải đi qua cánh cửa này.
-Trong phạm vi dự án, nhóm đã xây dựng lớp (class) \texttt{Socket} nhằm đóng gói các chức năng khởi tạo và quản lý kết nối, phục vụ cho việc trao đổi dữ liệu giữa các tiến trình trong mạng.
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.3\textwidth}p{0.6\textwidth}}
+        \toprule
+        \textbf{Chức năng} & \textbf{Mô tả} \\
+        \midrule
+        Khởi tạo và liên kết & Tạo, bind, listen/accept (TCP) hoặc bind (UDP) \\
+        Truyền nhận dữ liệu & Gửi/nhận byte hoặc datagram; thiết lập timeout; \texttt{SO\_REUSEADDR} để tái sử dụng cổng \\
+        Giải phóng tài nguyên & Đóng kết nối, giải phóng tài nguyên \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\noindent Trong dự án, lớp \texttt{Socket} tự bọc các thao tác này cho cả TCP (RTSP) và UDP (RTP), kèm timeout nhỏ để thread nhận có thể thoát khi dừng.
 
-\subsection{Giao thức RTP và RTSP}
-Hiện nay, hai giao thức phổ biến được sử dụng rộng rãi để phát video trực tuyến qua mạng Internet là \textbf{Real-Time Transport Protocol (RTP)} và \textbf{Real-Time Streaming Protocol (RTSP)}. 
-RTSP đóng vai trò điều khiển, gửi các lệnh đến máy chủ như thiết lập (\texttt{SETUP}), phát (\texttt{PLAYING}), tạm dừng (\texttt{PAUSE}) và kết thúc (\texttt{TEARDOWN}). Trong khi đó, RTP đóng vai trò là phương tiện vận chuyển dữ liệu truyền thông (âm thanh, hình ảnh), đảm nhiệm các tác vụ như phân mảnh gói tin, sắp xếp lại thứ tự, và giám sát chất lượng dịch vụ.
+\subsection{Tầng giao vận: TCP và UDP}
+\textbf{TCP} (Transmission Control Protocol) là giao thức hướng kết nối, tin cậy, có kiểm soát luồng và tắc nghẽn \cite{kurose2021computer}, phù hợp cho kênh điều khiển RTSP để bảo đảm lệnh đến đúng và đủ.
+\textbf{UDP} (User Datagram Protocol) là giao thức phi kết nối, không đảm bảo, có độ trễ thấp \cite{kurose2021computer}, phù hợp cho kênh dữ liệu RTP: chấp nhận mất mát nhỏ để giữ độ trễ thấp.
 
-\paragraph*{RTSP - Real Time Streaming Protocol}
-RTSP được thiết kế để thiết lập và điều khiển một hoặc nhiều luồng phương tiện liên tục được đồng bộ hóa thời gian \cite{rfc2326}. Bản thân giao thức này thường không trực tiếp truyền tải dữ liệu (payload), mặc dù việc truyền xen kẽ giữa luồng phương tiện và luồng điều khiển là khả thi. Nói cách khác, RTSP hoạt động như một "\textit{bộ điều khiển từ xa qua mạng}" dành cho các máy chủ đa phương tiện.
+\subsection{RTSP (Real-Time Streaming Protocol)}
+Theo RFC 2326 \cite{rfc2326}, RTSP là ``bộ điều khiển từ xa'' cho media server. Phiên (session) được định danh bằng Session ID và tồn tại qua nhiều kết nối TCP.
 
-Khác với HTTP, RTSP không có khái niệm kết nối tầng giao vận cố định. Thay vào đó, máy chủ duy trì một phiên làm việc (\textit{session}) được xác định bởi một mã định danh. Một phiên làm việc RTSP có thể tồn tại qua nhiều kết nối TCP khác nhau (ví dụ: mở kết nối mới để gửi lệnh \texttt{PAUSE} sau một khoảng thời gian dài phát video).
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.2\textwidth}p{0.7\textwidth}}
+        \toprule
+        \textbf{Phương thức} & \textbf{Mô tả} \\
+        \midrule
+        \texttt{SETUP} & Client yêu cầu thiết lập, cung cấp cổng RTP/RTCP (client\_port), server phản hồi với Session ID và server\_port \\
+        \texttt{PLAY} & Bắt đầu phát; server gửi RTP qua UDP tới client\_port; có thể kèm Range \\
+        \texttt{PAUSE} & Dừng tạm, giữ phiên \\
+        \texttt{TEARDOWN} & Kết thúc, giải phóng tài nguyên \\
+        Các trường chung & Mọi yêu cầu kèm \texttt{CSeq} (tăng dần) và \texttt{Session} (sau SETUP) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\noindent Trong code: \texttt{RTSPClient} kết nối TCP ``lười'' (lazy), gửi chuỗi RTSP, parse mã trạng thái, trích Session, server\_port, tổng số frame (\texttt{X-Total-Frames}). \texttt{ServerWorker} parse yêu cầu, phản hồi với Session, Transport và tổng frame, spawn thread gửi RTP khi PLAY.
 
-\paragraph*{RTP - Real Time Transport Protocol}
-Được định nghĩa trong \href{https://datatracker.ietf.org/doc/html/rfc3550}{RFC 3550}, RTP là chuẩn giao thức của IETF cho phép kết nối và trao đổi dữ liệu đòi hỏi tính thời gian thực (real-time). RTP cung cấp các chức năng vận chuyển dữ liệu đầu-cuối (\textit{end-to-end}) \cite{rfc3550}. 
-Cần lưu ý rằng RTP không đảm nhiệm việc đặt trước tài nguyên mạng hay đảm bảo chất lượng dịch vụ (QoS). Quá trình truyền tải dữ liệu thường được bổ trợ bởi giao thức điều khiển \textbf{RTCP} (RTP Control Protocol), cho phép giám sát quá trình phân phối dữ liệu và cung cấp thông tin phản hồi trong các mạng quy mô lớn.
+\subsection{RTP (Real-Time Transport Protocol)}
+Theo RFC 3550 \cite{rfc3550}, RTP gói dữ liệu thời gian thực. Header 12 byte gồm:
 
-\subsection{Giao thức TCP và UDP}
-Trong mạng máy tính, các thiết bị đầu cuối và thiết bị chuyển mạch đều vận hành các giao thức để điều khiển việc gửi và nhận dữ liệu \cite{kurose2021computer}. Trong bộ giao thức TCP/IP, hai giao thức tầng giao vận (Transport Layer) quan trọng nhất là \textbf{TCP} (Transmission Control Protocol) và \textbf{UDP} (User Datagram Protocol).
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.65\textwidth}}
+        \toprule
+        \textbf{Trường} & \textbf{Mô tả} \\
+        \midrule
+        \texttt{Version, P, X, CC} & Version=2, Padding, Extension, CSRC count \\
+        \texttt{M} (Marker) & Đánh dấu cuối frame (marker=1 cho gói cuối) \\
+        \texttt{PT} (Payload Type) & Loại payload (MJPEG=26) \\
+        \texttt{Sequence Number} & 16-bit, phát hiện mất/đảo gói \\
+        \texttt{Timestamp} & 32-bit, đồng bộ và tái tạo tốc độ phát \\
+        \texttt{SSRC} & 32-bit, định danh nguồn \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\noindent Trong dự án:
 
-\paragraph*{TCP (Transmission Control Protocol)}:
-Đây là giao thức cung cấp dịch vụ \textbf{hướng kết nối} (connection-oriented) cho các ứng dụng. Dịch vụ này đảm bảo vận chuyển tin nhắn từ tầng ứng dụng đến đích một cách tin cậy và thực hiện \textbf{kiểm soát luồng} (flow control) để đảm bảo bên gửi và bên nhận đồng bộ về tốc độ xử lý. Đồng thời, TCP phân chia các thông điệp dài thành các đoạn nhỏ hơn (segments) và cung cấp cơ chế \textbf{kiểm soát tắc nghẽn} (congestion control), cho phép nguồn phát tự động giảm tốc độ truyền khi mạng gặp sự cố nghẽn.
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.3\textwidth}p{0.6\textwidth}}
+        \toprule
+        \textbf{Thành phần} & \textbf{Chi tiết triển khai} \\
+        \midrule
+        Đóng gói RTP & \texttt{RTPPacket::encode} đóng gói header + payload; \texttt{RTPPacketBuilder} hỗ trợ fluent API \\
+        Payload MJPEG & Mỗi frame JPEG được gửi trọn hoặc phân mảnh (HDEncodingStrategy) theo MTU~1400B; marker=1 cho mảnh cuối \\
+        Quản lý sequence/timestamp & Server tăng \texttt{sequenceNumber} theo số gói đã gửi, \texttt{timestamp} tăng đều để tạo nhịp phát \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\subsection{RTCP (RTP Control Protocol) - tóm tắt}
+Dự án không hiện thực RTCP, nhưng lý thuyết RTCP \cite{rfc3550} cung cấp thống kê mất gói, jitter, đồng bộ A/V. Nếu cần mở rộng, có thể thêm gói SR/RR (Sender Report/Receiver Report) từ client về server để điều chỉnh tốc độ, báo mất gói.
+\FloatBarrier
+\subsection{Luồng hoạt động tổng quát}
+\FloatBarrier               
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.1\textwidth}p{0.8\textwidth}}
+        \toprule
+        \textbf{Bước} & \textbf{Hoạt động} \\
+        \midrule
+        1 & Client khởi tạo RTSP/TCP, gửi \texttt{SETUP} kèm cổng RTP (client\_port) \\
+        2 & Server mở VideoStream, đếm tổng frame, phản hồi 200 OK với Session ID, server\_port, X-Total-Frames \\
+        3 & Client mở UDP socket (bind client\_port), khởi tạo receiver và bộ đệm, chuyển state READY \\
+        4 & Client gửi \texttt{PLAY}; server chuyển state PLAYING, tạo thread gửi RTP gói-gói theo nhịp Timer (25fps) \\
+        5 & Client nhận RTP qua UDP, reassemble theo timestamp + marker, đẩy frame vào FrameBuffer; UI đọc buffer và hiển thị \\
+        6 & \texttt{PAUSE}: server ngưng gửi; \texttt{PLAY} tiếp tục cùng Session \\
+        7 & \texttt{TEARDOWN}: hai bên giải phóng tài nguyên, socket đóng \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\paragraph*{UDP (User Datagram Protocol)}:
-Trái ngược với TCP, UDP cung cấp dịch vụ \textbf{phi kết nối} (connectionless). Đây là một dịch vụ tối giản, không đảm bảo độ tin cậy trong truyền tin, không có cơ chế kiểm soát luồng hay kiểm soát tắc nghẽn. Tuy nhiên, nhờ sự tinh giản này mà UDP có tốc độ truyền tải nhanh hơn, phù hợp với các ứng dụng thời gian thực.
+\subsection{Bộ đệm, tái lắp ráp và chống jitter}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.65\textwidth}}
+        \toprule
+        \textbf{Thành phần} & \textbf{Chức năng} \\
+        \midrule
+        FrameBuffer & Hàng đợi giới hạn (mặc định 500 frame); hỗ trợ push/pop blocking với timeout \\
+        FrameReassembler & Nhóm các gói cùng timestamp, sort theo sequence, ghép payload, marker=1 kết thúc frame \\
+        Prebuffer & Chờ đủ N frame trước khi phát để giảm giật \\
+        Thích ứng & Nếu buffer thấp, UI giảm tốc độ đọc (tăng interval), hoặc chờ thêm; nếu hết frame $\Rightarrow$ chuyển READY, giữ Session để PLAY lại \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\subsection{Phân mảnh và MTU}
+Mạng thường giới hạn MTU (Maximum Transmission Unit) khoảng 1500 byte \cite{kurose2021computer}. Dự án đặt payload RTP tối đa 1400 byte, phần còn lại dành cho header IP/UDP/RTP. HDEncodingStrategy cắt frame lớn thành nhiều gói, marker=1 cho mảnh cuối, tất cả mảnh dùng chung timestamp để client có thể tái lắp ráp đúng.
+\FloatBarrier
+\subsection{Threading và timeout}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.2\textwidth}p{0.7\textwidth}}
+        \toprule
+        \textbf{Bên} & \textbf{Cấu hình thread và timeout} \\
+        \midrule
+        Server & Một thread RTSP xử lý lệnh; một thread streaming gửi RTP khi state PLAYING \\
+        Client & Một thread nhận UDP (\texttt{RTPReceiver}), một thread UI Qt render; đồng bộ qua buffer \\
+        Socket timeout & Timeout nhỏ (5ms cho UDP) để vòng lặp nhận kiểm tra cờ dừng; timeout RTSP (TCP) lớn hơn \\
+        Reuse address & Bật \texttt{SO\_REUSEADDR} để tránh kẹt cổng khi TEARDOWN/PLAY lại \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\subsection{NAT và triển khai thực tế}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.25\textwidth}p{0.65\textwidth}}
+        \toprule
+        \textbf{Môi trường} & \textbf{Yêu cầu triển khai} \\
+        \midrule
+        RTSP/TCP & Mặc định 554, ở đây dùng 8554; cần mở trên firewall/NAT nếu chạy qua Internet \\
+        RTP/UDP & Cổng do client chọn, cần mở trên firewall/NAT nếu chạy qua Internet \\
+        Trong LAN & Không cần port forwarding; dùng trực tiếp IP nội bộ \\
+        Qua Internet & Cần NAT mapping hoặc giải pháp VPN/tunnel (Tailscale, v.v.) nếu không mở port \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+\subsection{Thiết kế hướng đối tượng}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \small
+    \begin{tabular}{p{0.3\textwidth}p{0.6\textwidth}}
+        \toprule
+        \textbf{Lớp/Module} & \textbf{Vai trò} \\
+        \midrule
+        \texttt{Socket} & Đóng gói TCP/UDP, timeout, send/recv \\
+        \texttt{RTSPClient}/\texttt{ServerWorker} & Quản lý phiên, state machine RTSP \\
+        \texttt{RTPPacket}, \texttt{RTPPacketBuilder} & Xây gói RTP \\
+        \texttt{EncodingStrategy} (SD/HD) & Pattern Strategy để chọn cách phân mảnh \\
+        \texttt{FrameBuffer}, \texttt{FrameReassembler} & Tách trách nhiệm nhận và tái lắp khung \\
+        UI Qt & Xử lý sự kiện SETUP/PLAY/PAUSE/TEARDOWN, hiển thị trạng thái, buffer \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier       
+\subsection{Tóm lược}
+Dự án kết hợp kênh điều khiển tin cậy (RTSP/TCP \cite{rfc2326}) với kênh dữ liệu thời gian thực (RTP/UDP \cite{rfc3550}), bổ sung cơ chế phân mảnh, đánh dấu thời gian, đánh số gói, bộ đệm và tái lắp khung để đảm bảo phát video mượt, giảm jitter. Các quyết định kỹ thuật (timeout ngắn cho UDP, prebuffer, strategy fragmentation) bám sát đặc thù ứng dụng streaming thời gian thực \cite{kurose2021computer}. 
 
-\paragraph*{Cơ chế vận chuyển}:
-Tầng mạng (Network Layer) của Internet chịu trách nhiệm di chuyển các gói tin (được gọi là \texttt{datagrams}) từ máy chủ này sang máy chủ khác. Tại phía gửi, giao thức tầng giao vận (TCP hoặc UDP) sẽ đóng gói dữ liệu thành các \texttt{segment}, gán địa chỉ đích và chuyển xuống tầng mạng để thực hiện quá trình truyền tải.
+\subsection{Tổng hợp lý thuyết qua bảng tóm tắt}
+Các bảng dưới đây gom kiến thức chính theo dạng so sánh, tránh liệt kê dài.
+
+\paragraph{So sánh TCP và UDP trong truyền thông thời gian thực}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.2\textwidth}p{0.4\textwidth}}
+        \toprule
+        Tiêu chí & TCP & UDP & Lý do chọn trong dự án \\
+        \midrule
+        Kết nối & Hướng kết nối, bắt tay 3 bước & Phi kết nối & RTSP cần phiên tin cậy; RTP cần độ trễ thấp \\
+        Tin cậy & Có, retransmission & Không & Chấp nhận mất gói nhỏ để giữ latency \\
+        Kiểm soát tắc nghẽn & Có & Không & Điều khiển dùng TCP; dữ liệu ưu tiên tốc độ \\
+        Độ trễ & Cao hơn & Thấp & UDP phù hợp streaming \\
+        Kiểm soát luồng & Có & Không & Không cần ở kênh dữ liệu \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\paragraph{Các phương thức RTSP chủ đạo}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.2\textwidth}p{0.4\textwidth}}
+        \toprule
+        Phương thức & Mục đích & Trường trọng yếu \\
+        \midrule
+        SETUP & Thiết lập phiên, thương lượng cổng & CSeq, Transport (client\_port), phản hồi Session, server\_port, tổng frame \\
+        PLAY & Bắt đầu phát & CSeq, Session, (tuỳ chọn Range) \\
+        PAUSE & Tạm dừng, giữ phiên & CSeq, Session \\
+        TEARDOWN & Kết thúc, giải phóng & CSeq, Session \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\paragraph{Header RTP (12 byte chuẩn)}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.2\textwidth}p{0.4\textwidth}}
+        \toprule
+        Trường & Kích thước & Chức năng \\
+        \midrule
+        Version & 2 bit & Luôn bằng 2 \\
+        P, X, CC & 1,1,4 bit & Padding, Extension, CSRC count \\
+        Marker (M) & 1 bit & Đánh dấu gói cuối frame \\
+        Payload Type & 7 bit & MJPEG = 26 \\
+        Sequence Number & 16 bit & Phát hiện mất/đảo gói \\
+        Timestamp & 32 bit & Đồng bộ tốc độ phát \\
+        SSRC & 32 bit & Định danh nguồn gửi \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+Trong triển khai, payload giới hạn 1400 byte để tránh vượt MTU \cite{kurose2021computer}; tất cả mảnh chung timestamp, gói cuối đặt Marker=1. Payload type 26 dành cho MJPEG tuân theo RTP payload format \cite{rfc2435}.
+
+\paragraph{Socket và thiết lập thời gian chờ}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.2\textwidth}p{0.4\textwidth}}
+        \toprule
+        Thành phần & Thiết lập & Lý do \\
+        \midrule
+        UDP socket (RTP) & Timeout 5 ms & Vòng lặp nhận thoát nhanh khi dừng \\
+        TCP socket (RTSP) & Timeout dài hơn & Giữ kết nối giữa các lệnh \\
+        SO\_REUSEADDR & Bật & Giảm kẹt cổng khi PLAY/TEARDOWN liên tục \\
+        Bind client\_port & Bắt buộc & Nhận gói RTP từ server \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+
+\paragraph{Bộ đệm và tái lắp ráp}
+\FloatBarrier
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}{p{0.2\textwidth}p{0.2\textwidth}p{0.2\textwidth}p{0.4\textwidth}}
+        \toprule
+        Thành phần & Vai trò & Ghi chú \\
+        \midrule
+        FrameBuffer & Hàng đợi khung, chặn khi đầy/rỗng & Giảm jitter, prebuffer trước khi phát \\
+        FrameReassembler & Gom gói cùng timestamp, sắp xếp theo seq & Marker=1 kết thúc frame \\
+        Prebuffer & Chờ đủ N khung rồi phát & Tránh giật hình khi mạng dao động \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\FloatBarrier
+
+\subsection{Ghi chú mở rộng}
+Nếu mở rộng, có thể bổ sung RTCP \cite{rfc3550} để phản hồi mất gói/jitter; thêm seek thật với Range \cite{rfc2326} và index keyframe; chuyển mã H.264/H.265 kèm SDP (Session Description Protocol) \cite{rfc4566}; hoặc thêm FEC (Forward Error Correction) và NACK (Negative Acknowledgment) cho môi trường suy hao cao. Các hướng này kế thừa nền tảng RTSP/RTP hiện có.

@@ -72,3 +72,5 @@ obj/
 
 .vscode/
 compile_commands.json
+
+setup.spec

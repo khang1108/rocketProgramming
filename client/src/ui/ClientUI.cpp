@@ -247,13 +247,23 @@ void ClientUI::onPlayClicked() {
         Logger::getInstance().log(LogLevel::INFO, "PLAY button clicked");
         std::cout << "\n[PLAY] Playing video ...\n";
 
-        bool success = rtspClient_->sendPlay();
+        // Kiểm tra xem video đã phát hết chưa để quyết định có restart hay không
+        bool needRestart = (currentFrame_ >= totalFrames_);
+
+        if (needRestart) {
+            LOG_INFO("[PLAY] Video ended, requesting restart from server");
+        } else {
+            LOG_INFO("[PLAY] Video not ended (buffer still has frames or paused mid-stream), no "
+                     "restart needed");
+        }
+
+        bool success = rtspClient_->sendPlay(needRestart);
 
         if (success) {
-            // Reset playback position if video ended (server will rewind)
-            if (currentFrame_ >= totalFrames_) {
+            // Reset playback position if video ended
+            if (needRestart) {
                 currentFrame_ = 0;
-                LOG_INFO("[PLAY] Restarting from beginning");
+                LOG_INFO("[PLAY] Client reset currentFrame to 0");
 
                 // Clear "End of Video" message
                 if (videoLabel_) {
@@ -274,6 +284,7 @@ void ClientUI::onPlayClicked() {
             fpsStartTime_ = std::chrono::steady_clock::now();
 
             state_ = State::PLAYING;  // READY → PLAYING
+            std::cout << "[STATE] Changed to PLAYING - PAUSE button should be enabled\n";
             updateButtonStates();
 
             std::cout << "[PLAY] Success!\n";
@@ -288,6 +299,9 @@ void ClientUI::onPlayClicked() {
     }
 }
 void ClientUI::onPauseClicked() {
+    std::cout << "\n[DEBUG] PAUSE button clicked! Current state: " << static_cast<int>(state_)
+              << "\n";
+
     if (!initialized_) {
         std::cerr << "[PAUSE] ClientUI not initialized\n";
         return;
@@ -300,6 +314,7 @@ void ClientUI::onPauseClicked() {
         bool success = rtspClient_->sendPause();
 
         if (success) {
+            std::cout << "[STATE] Changing PLAYING → READY (pause requested)\n";
             state_ = State::READY;  // PLAYING → READY
             updateButtonStates();
 
@@ -455,6 +470,10 @@ void ClientUI::updateFrame() {
     if (!initialized_ || !frameBuffer_ || !videoLabel_ || !statusLabel_)
         return;
 
+    // Static counters for buffer empty tracking (moved to function scope)
+    static bool shownEmptyWarning = false;
+    static int emptyCount = 0;
+
     try {
         updatePrebufferIndicator();
     } catch (const std::exception& e) {
@@ -469,12 +488,19 @@ void ClientUI::updateFrame() {
     size_t currentBufferSize = frameBuffer_->size();
 
     if (currentBufferSize == 0) {
-        bool isEndOfVideo = (totalFrames_ > 0 && currentFrame_ >= totalFrames_ - 1);
+        // Only mark as end-of-video if we've DISPLAYED all frames
+        // currentFrame_ is incremented AFTER displaying, so check >= totalFrames_
+        bool isEndOfVideo = (totalFrames_ > 0 && currentFrame_ >= totalFrames_);
+
+        std::cout << "[DEBUG] Buffer empty - currentFrame_=" << currentFrame_
+                  << ", totalFrames_=" << totalFrames_
+                  << ", isEndOfVideo=" << (isEndOfVideo ? "YES" : "NO") << "\n";
 
         if (isEndOfVideo) {
-            std::cout << "[BUFFER] End of stream detected\n";
+            std::cout << "[BUFFER] End of stream detected - STOPPING\n";
             LOG_INFO("[BUFFER] Video playback completed");
 
+            std::cout << "[STATE] Changing PLAYING → READY (end of video)\n";
             state_ = State::READY;
             prebufferReady_ = false;
             fps_ = 0;
@@ -496,9 +522,6 @@ void ClientUI::updateFrame() {
             updateButtonStates();
             return;
         }
-        // Static counters cho buffer empty tracking
-        static bool shownEmptyWarning = false;
-        static int emptyCount = 0;
 
         if (!shownEmptyWarning) {
             std::cout << "[BUFFER] Buffer empty! Waiting for data...\n";
@@ -509,9 +532,11 @@ void ClientUI::updateFrame() {
 
         emptyCount++;
         if (emptyCount > 250) {
-            std::cout << "[BUFFER] Buffer empty for 5 seconds - VIDEO ENDED\n";
-            LOG_INFO("[BUFFER] Buffer empty for 5 seconds - stopping playback");
+            // Timeout case: buffer empty for 5 seconds (network issue or unexpected end)
+            std::cout << "[BUFFER] Buffer empty for 5 seconds - TIMEOUT\n";
+            LOG_INFO("[BUFFER] Buffer empty for 5 seconds - stopping playback (timeout)");
 
+            std::cout << "[STATE] Changing PLAYING → READY (timeout)\n";
             // Change state to READY (session still active for replay)
             state_ = State::READY;
             prebufferReady_ = false;
@@ -631,6 +656,10 @@ void ClientUI::updateFrame() {
     currentFrame_++;
     framesThisSecond_++;
 
+    // Reset empty buffer tracking counters after successfully displaying a frame
+    shownEmptyWarning = false;
+    emptyCount = 0;
+
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - fpsStartTime_).count();
 
@@ -639,7 +668,8 @@ void ClientUI::updateFrame() {
         framesThisSecond_ = 0;
         fpsStartTime_ = now;
         std::cout << "[STATUS] FPS: " << fps_ << " | Buffer: " << frameBuffer_->size() << " frames"
-                  << " | Frame: " << currentFrame_ << "\n";
+                  << " | Frame: " << currentFrame_ << "/" << totalFrames_
+                  << " | State: " << (state_ == State::PLAYING ? "PLAYING" : "READY/INIT") << "\n";
     }
 
     updateTimeline();

@@ -134,13 +134,22 @@ std::string ServerWorker::handlePlay(const RTSPMessage::Request& request) {
     if (!validateSessionId(request))
         return RTSPMessage::buildResponse(454, "Session Not Found", request.cseq);
 
-    // ✅ Kiểm tra nếu video đã hết → rewind để play lại từ đầu
-    if (videoStream_ && !videoStream_->hasMoreFrames()) {
-        LOG_INFO("Video at end, rewinding to start...");
-        videoStream_->rewind();
-        // Reset timestamp để bắt đầu lại
-        timestamp_ = 0;
-        LOG_INFO("Video rewound, ready to play from beginning");
+    // KHÔNG tự động rewind khi PLAY!
+    // Lý do: Client có thể đang PAUSE giữa video, PLAY lại không cần server gửi lại
+    // Server chỉ rewind khi:
+    // 1. Client thực sự muốn replay (phải TEARDOWN + SETUP + PLAY)
+    // 2. Hoặc client gửi header đặc biệt (Range: 0-)
+
+    // Kiểm tra nếu client yêu cầu restart bằng Range header
+    auto rangeIt = request.headers.find("Range");
+    if (rangeIt != request.headers.end() && rangeIt->second.find("npt=0-") != std::string::npos) {
+        // Client muốn restart từ đầu
+        if (videoStream_ && !videoStream_->hasMoreFrames()) {
+            LOG_INFO("Client requested restart (Range: npt=0-), rewinding...");
+            videoStream_->rewind();
+            timestamp_ = 0;
+            sequenceNumber_ = 0;
+        }
     }
 
     if (!streaming_) {
@@ -149,6 +158,7 @@ std::string ServerWorker::handlePlay(const RTSPMessage::Request& request) {
     }
 
     state_ = State::PLAYING;
+    LOG_INFO("PLAY command accepted. State: PLAYING");
     return RTSPMessage::buildResponse(200, "OK", request.cseq, {{"Session", sessionId_}});
 }
 
@@ -241,15 +251,17 @@ void ServerWorker::streamingLoop() {
                 break;
             }
         } else {
-            // Video hết → DỪNG, không auto-loop
-            LOG_INFO("Video ended, stopping playback (no auto-loop)");
-            state_ = State::READY;  // PLAYING → READY
-            // NOTE: Không set streaming_ = false, để thread vẫn alive
-            // Thread sẽ sleep khi state != PLAYING
-            LOG_INFO("State changed to READY. Click PLAY to restart from beginning.");
+            // Video hết → GIỮ NGUYÊN state = PLAYING để client có thể PAUSE
+            // Chỉ khi client gửi PAUSE/TEARDOWN thì mới chuyển state
+            LOG_INFO("Video ended (all frames sent), waiting for client action...");
+            LOG_INFO("NOTE: Server keeps state=PLAYING, client can still PAUSE/TEARDOWN");
 
-            // Sleep một chút để không busy loop
+            // Sleep để không busy loop khi chờ client
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            // Loop sẽ tiếp tục check streaming_ và state_
+            // - Nếu client gửi PAUSE → handlePause sẽ set state = READY
+            // - Nếu client gửi PLAY lại → videoStream_->rewind() và tiếp tục
         }
 
         frameTimer_->wait();

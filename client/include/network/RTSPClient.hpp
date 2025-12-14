@@ -231,7 +231,7 @@ class RTSPClient {
      * @note Must be in READY state
      * @note Server starts sending RTP packets after this
      */
-    bool sendPlay();
+    bool sendPlay(bool restart = false);
 
     /**
      * @brief Send RTSP PAUSE request
@@ -305,7 +305,7 @@ class RTSPClient {
      */
     std::string getStateString() const;
 
-    int getTotalFrames() const {return totalFrames_;}
+    int getTotalFrames() const { return totalFrames_; }
 };
 
 #endif

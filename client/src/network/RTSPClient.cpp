@@ -214,7 +214,7 @@ bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
 
     std::string tfStr = RTSPMessage::getHeader(parsed.headers, "X-Total-Frames", "0");
     totalFrames_ = std::stoi(tfStr);
-    if(totalFrames_ <= 0){
+    if (totalFrames_ <= 0) {
         std::cerr << "[RTSPClient] Cannot count total frames of the video\n";
         LOG_ERROR("[RTSPClient] Cannot count total frames of the video");
 
@@ -238,10 +238,9 @@ bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
     return true;
 }
 
-bool RTSPClient::sendPlay() {
+bool RTSPClient::sendPlay(bool restart) {
     if (state_ != State::READY && state_ != State::PLAYING) {
-        std::cerr << "[RTSP] sendPlay(): invalid state = " 
-                << getStateString() << std::endl;
+        std::cerr << "[RTSP] sendPlay(): invalid state = " << getStateString() << std::endl;
         return false;
     }
     if (sessionId_.empty())
@@ -255,7 +254,15 @@ bool RTSPClient::sendPlay() {
     req << "PLAY " << rtspUri << " RTSP/1.0\r\n";
     req << "CSeq: " << ++cseq_ << "\r\n";
     req << "Session: " << sessionId_ << "\r\n";
-    req << "Range: npt=0.000-\r\n";  // Start from beginning
+
+    // Chỉ gửi Range header khi client muốn restart từ đầu
+    // (khi video đã phát hết và user ấn PLAY để xem lại)
+    if (restart) {
+        req << "Range: npt=0-\r\n";
+        LOG_INFO("[RTSP] Sending PLAY with Range: npt=0- (restart from beginning)");
+    } else {
+        LOG_INFO("[RTSP] Sending PLAY without Range (resume/continue)");
+    }
     req << "\r\n";
 
     std::string resp = sendRtspRequest(req.str());
