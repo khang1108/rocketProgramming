@@ -295,6 +295,7 @@ ServerWorker::ServerWorker(int clientId, std::unique_ptr<Socket> rtspSocket)
 
 ServerWorker::~ServerWorker() {
     stop();
+    LOG_INFO("Worker " + std::to_string(clientId_) + " stopped.");
 }
 
 void ServerWorker::run() {
@@ -306,9 +307,6 @@ void ServerWorker::run() {
     } catch (const std::exception& e) {
         LOG_ERROR("Worker " + std::to_string(clientId_) + " error: " + e.what());
     }
-
-    stop();
-    LOG_INFO("Worker " + std::to_string(clientId_) + " stopped.");
 }
 
 void ServerWorker::stop() {

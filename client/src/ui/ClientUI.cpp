@@ -469,32 +469,6 @@ void ClientUI::updateFrame() {
     size_t currentBufferSize = frameBuffer_->size();
 
     if (currentBufferSize == 0) {
-        if (totalFrames_ > 0 && currentFrame_ >= totalFrames_) {
-            LOG_INFO("[BUFFER] Detected end-of-video (buffer empty & all frames played)");
-
-            // Don't TEARDOWN - keep session alive for replay
-            // Just change state to READY and wait for user to click PLAY
-            state_ = State::READY;
-            prebufferReady_ = false;
-
-            if (rtpReceiver_)
-                rtpReceiver_->stop();
-            if (frameBuffer_)
-                frameBuffer_->clear();
-
-            statusLabel_->setText("Video ended. Click PLAY to watch again.");
-
-            if (videoLabel_) {
-                videoLabel_->setText("End of Video - Click PLAY to restart");
-                videoLabel_->setStyleSheet("background-color: black; color: white;");
-                videoLabel_->setAlignment(Qt::AlignCenter);
-                videoLabel_->setPixmap(QPixmap());
-            }
-
-            updateButtonStates();
-            return;
-        }
-
         bool isEndOfVideo = (totalFrames_ > 0 && currentFrame_ >= totalFrames_ - 1);
 
         if (isEndOfVideo) {
