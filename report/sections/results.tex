@@ -1,0 +1,86 @@
+\section{Results}
+
+Phần này tổng hợp kết quả kiểm thử và xác nhận tính đúng đắn của các khối logic cốt lõi (RTSP message handling, Timer kiểm soát nhịp), đồng thời mô tả các hành vi runtime có thể quan sát được từ client UI và các thống kê có sẵn trong mã nguồn.
+
+\subsection{Kết quả kiểm thử đơn vị (Unit Tests)}
+
+Dự án cung cấp bộ kiểm thử trong \code{common/tests} cho hai thành phần có rủi ro lỗi cao: (1) xây dựng và phân tích RTSP message, (2) Timer điều phối thời gian. Các test được viết theo phong cách ``lightweight framework'' (assert + reporter) và có thể chạy độc lập với Qt.
+
+\begin{table}[H]
+\centering
+\caption{Tổng hợp kết quả unit test ở tầng Common}
+\label{tab:unit_tests}
+\begin{tabular}{lrr}
+\toprule
+Test Suite & Số test & Kết quả \\
+\midrule
+\code{test\_rtsp\_message} & 15 & 15 passed, 0 failed \\
+\code{test\_timer} & 13 & 13 passed, 0 failed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Kết quả chạy test RTSPMessage thể hiện cả các kịch bản cơ bản lẫn round-trip (build rồi parse lại). Đoạn log dưới đây minh họa phần tổng kết của suite (trích nguyên văn từ output).
+
+\begin{lstlisting}[language={}, caption={Output tổng kết của \texttt{test\_rtsp\_message}}, label={lst:rtsp_test_output}]
+Total: 15 tests
+Passed: 15
+Failed: 0
+\end{lstlisting}
+
+Tương tự, Timer được kiểm tra với nhiều interval (25 FPS, 30 FPS, 60 FPS), kiểm tra drift (không sleep khi ``work time'' vượt interval), và stress test. Đoạn log tổng kết:
+
+\begin{lstlisting}[language={}, caption={Output tổng kết của \texttt{test\_timer}}, label={lst:timer_test_output}]
+Total: 13 tests
+Passed: 13
+Failed: 0
+\end{lstlisting}
+
+\subsection{Chỉ số runtime sẵn có ở Client}
+
+Ngoài unit test, Client đã tích hợp các thống kê runtime cho RTP: số packet nhận, số packet ước lượng mất, tổng bytes, và phần trăm loss. Loss được tính bằng chênh lệch sequence; do đó thống kê phản ánh mất gói ``theo thứ tự'' (out-of-order có thể bị tính như lost nếu đến quá muộn hoặc bị bỏ qua ở Reassembler tùy kịch bản).
+
+\begin{lstlisting}[language=C++, caption={Công thức phần trăm mất gói RTP}, label={lst:loss_formula}]
+double RTPReceiver::getPacketLossPercentage() const {
+    uint64_t total = packetReceived_ + packetLost_;
+    if (total == 0) return 0.0;
+    return (static_cast<double>(packetLost_) * 100.0) / static_cast<double>(total);
+}
+\end{lstlisting}
+
+\subsection{Hành vi buffer và prebuffer quan sát từ UI}
+
+UI triển khai hai cơ chế nhằm tối ưu trải nghiệm: (1) prebuffer trước khi phát, (2) điều chỉnh nhịp render theo mức buffer. Prebuffer được kích hoạt khi bắt đầu PLAY hoặc khi xảy ra ``rebuffering'' do buffer cạn; điều này làm tăng độ ổn định, đổi lại là tăng độ trễ đầu phát.
+
+\begin{table}[H]
+\centering
+\caption{Các tham số buffer quan trọng và ý nghĩa vận hành}
+\label{tab:buffer_params}
+\begin{tabular}{lll}
+\toprule
+Tham số & Vị trí & Ý nghĩa \\
+\midrule
+\code{PREBUFFER\_FRAMES} & \code{ClientUI} & Số frame cần tích lũy trước khi bắt đầu render \\
+\code{LOW\_BUFFER\_THRESHOLD} & \code{ClientUI} & Ngưỡng cảnh báo buffer thấp và tăng interval render \\
+\code{MAX\_PAYLOAD\_SIZE} & \code{RTPPacket} & Giới hạn payload/packet để tránh IP fragmentation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[language=C++, caption={UI chuyển sang trạng thái ``Buffering'' khi buffer chưa đủ}, label={lst:ui_buffering_state}]
+statusLabel_->setText(QString("Buffering... %1/%2 frames (%3%)")
+    .arg(bufferSize)
+    .arg(PREBUFFER_FRAMES)
+    .arg(percentage, 0, 'f', 1));
+\end{lstlisting}
+
+\subsection{Hướng dẫn tái lập kết quả (Reproducibility)}
+
+Để tái lập kiểm thử và quan sát hệ thống trong môi trường có Qt6, quy trình thực nghiệm gồm: build project, chạy server với port, chạy client với tham số (server IP, port, file MJPEG, RTP port). Các lệnh chạy và tham số được đọc trực tiếp từ \code{server/src/server.cpp} và \code{client/src/client.cpp}.
+
+\begin{lstlisting}[language={}, caption={Gợi ý chạy server/client theo tham số dòng lệnh}, label={lst:run_cmds}]
+./server 8554
+./client 127.0.0.1 8554 movie.Mjpeg 25000
+\end{lstlisting}
+
+Trong quá trình chạy, file log \code{server.log} và \code{client.log} sẽ ghi lại các sự kiện chính (kết nối, chuyển state, buffer cảnh báo, timeout), phục vụ phân tích sau thực nghiệm.

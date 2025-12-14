@@ -1,153 +1,348 @@
 \section{Implementation}
 
-Phần này đi sâu vào chi tiết hiện thực của từng module trong hệ thống, bao gồm tổ chức mã nguồn, phân tích các lớp chính, trích dẫn các đoạn mã quan trọng và giải thích lý do lựa chọn giải pháp kỹ thuật cụ thể.
+Mục tiêu của phần này là mô tả đầy đủ cách hệ thống được hiện thực ở mức mã nguồn: cách tổ chức module, cấu trúc lớp, luồng điều khiển của RTSP/RTP, cơ chế đa luồng, thuật toán đóng gói--giải gói RTP (bao gồm phân mảnh cho frame lớn), thuật toán trích xuất frame MJPEG, và cơ chế ``buffer như một lớp cache'' ở phía Client để ổn định trải nghiệm xem.
 
-\subsection{Tổ chức Codebase}
-Dự án được tổ chức theo cấu trúc thư mục phân tách rõ ràng giữa Client, Server và các thành phần dùng chung (Common) để đảm bảo tính module hóa và dễ bảo trì.
+\subsection{Tổ chức codebase và quy ước build}
 
-\begin{itemize}
-    \item \code{server/}: Chứa mã nguồn cho ứng dụng Server.
-    \begin{itemize}
-        \item \code{src/network/RTSPServer.cpp}: Lớp chính để lắng nghe kết nối TCP.
-        \item \code{src/network/ServerWorker.cpp}: Lớp xử lý logic cho từng Client riêng biệt.
-    \end{itemize}
-    \item \code{client/}: Chứa mã nguồn cho ứng dụng Client.
-    \begin{itemize}
-        \item \code{src/ui/ClientUI.cpp}: Giao diện người dùng (Qt Framework).
-        \item \code{src/network/RTSPClient.cpp}: Xử lý gửi/nhận tín hiệu RTSP.
-    \end{itemize}
-    \item \code{common/}: Chứa các thư viện dùng chung.
-    \begin{itemize}
-        \item \code{src/network/Socket.cpp}: Wrapper cho API Socket của hệ điều hành.
-        \item \code{src/rtp/RTPPacket.cpp}: Logic đóng gói/giải gói dữ liệu RTP.
-    \end{itemize}
-\end{itemize}
+Dự án được tách thành ba khối chính: \textbf{Server}, \textbf{Client} và \textbf{Common}. Common đóng vai trò thư viện dùng chung cho cả hai phía (network wrapper, RTSP message parsing/building, RTP packet, tiện ích). Việc chia tách này giúp cô lập phụ thuộc (đặc biệt là Qt chỉ xuất hiện ở Client), giảm vòng lặp biên dịch, và làm rõ ranh giới trách nhiệm.
 
-\subsection{Server Implementation}
+\begin{table}[H]
+\centering
+\caption{Phân rã module và phạm vi trách nhiệm}
+\label{tab:modules}
+\begin{tabular}{p{0.2\textwidth}p{0.4\textwidth}p{0.4\textwidth}}
+\toprule
+Module & Trách nhiệm chính & Ví dụ file trọng điểm \\
+\midrule
+\code{common/} & Thư viện dùng chung (Socket, RTSP, RTP, Logger/Timer/Config) & \code{common/src/network/Socket.cpp}, \code{common/src/rtp/RTPPacket.cpp} \\
+\code{server/} & RTSP server + luồng streaming RTP + đọc MJPEG & \code{server/src/network/RTSPServer.cpp}, \code{server/src/network/ServerWorker.cpp}, \code{server/src/video/VideoStream.cpp} \\
+\code{client/} & RTSP client + nhận RTP + ghép frame + buffer/cache + Qt UI & \code{client/src/network/RTSPClient.cpp}, \code{client/src/rtp/RTPReceiver.cpp}, \code{client/src/buffer/FrameBuffer.cpp}, \code{client/src/ui/ClientUI.cpp} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsubsection{Cơ chế đa luồng (Multi-threading)}
-\textbf{Lý do thiết kế:} Server phải có khả năng phục vụ nhiều Client xem video cùng lúc. Nếu chỉ sử dụng một luồng duy nhất (Single-thread), khi Server đang gửi dữ liệu cho Client A, Client B sẽ phải chờ đợi, gây ra độ trễ lớn.
+Build system sử dụng CMake và tách các target theo thư mục con; Qt6 chỉ được yêu cầu ở cấp root để build Client. Các include directory được cấu hình để cả Server/Client truy cập được Common.
 
-\textbf{Hiện thực:}
-Trong \code{RTSPServer::run()}, chúng tôi sử dụng vòng lặp vô hạn để chấp nhận kết nối. Mỗi khi có kết nối mới, một \code{std::thread} mới được tạo ra để chạy \code{ServerWorker}.
+\begin{lstlisting}[language=C++, caption={CMake cấu hình Qt6 và chia subdirectory}, label={lst:cmake_root}]
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network Multimedia MultimediaWidgets)
 
-\begin{lstlisting}[language=C++, caption={Vòng lặp chấp nhận kết nối trong RTSPServer.cpp}]
-void RTSPServer::run() {
-    running = true;
-    while (running) {
-        // Accept TCP connection from Client
-        std::unique_ptr<Socket> clientSocket = listenSocket->accept();
-        if (clientSocket) {
-            int clientId = nextClientId++;
-            // Create Worker to manage this Client
-            auto worker = std::make_unique<ServerWorker>(clientId, std::move(clientSocket));
-            
-            // WHY: Create separate thread to avoid blocking main loop
-            std::thread workerThread([w = worker.get()]() { w->run(); });
-            workerThread.detach(); // Detach thread
-            
-            // Save session to list
-            activeSessions.push_back({clientId, std::move(worker)});
+include_directories(
+    ${CMAKE_SOURCE_DIR}/common/include
+    ${CMAKE_SOURCE_DIR}/client/include
+    ${CMAKE_SOURCE_DIR}/server/include
+)
+
+add_subdirectory(common)
+add_subdirectory(client)
+add_subdirectory(server)
+\end{lstlisting}
+
+\subsection{Common layer: chuẩn hóa giao tiếp và tiện ích dùng chung}
+
+\subsubsection{Socket wrapper và mô hình lỗi}
+
+Thay vì gọi trực tiếp POSIX/WinSock API, hệ thống xây dựng lớp \code{Socket} như một ``adapter'' thống nhất cho TCP/UDP. Lớp này đóng gói các thao tác then chốt: \code{bind()/listen()/accept()} cho TCP server, \code{connect()} cho TCP client, \code{send()/recv()} cho RTSP qua TCP, và \code{sendTo()/recvFrom()} cho RTP qua UDP. Điểm quan trọng là lớp \code{Socket} chủ động chuyển các lỗi hệ thống về exception ở mức C++ (\code{SocketException}, \code{SocketTimeout}), giúp code xử lý luồng điều khiển rõ ràng hơn (đặc biệt trong vòng lặp nhận RTP).
+
+\begin{lstlisting}[language=C++, caption={Vòng lặp \texttt{send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}, label={lst:socket_send_all}]
+int Socket::send(const uint8_t* data, size_t length) {
+    size_t totalSent = 0;
+    while (totalSent < length) {
+        int bytes = ::send(sockfd_, (const char*)(data + totalSent),
+                           length - totalSent, 0);
+        if (bytes == SOCKET_ERROR) {
+            // map error -> SocketTimeout / SocketException
+            ...
+        }
+        totalSent += bytes;
+    }
+    return (int)totalSent;
+}
+\end{lstlisting}
+
+Với RTP (UDP), socket được đặt timeout ngắn để thread nhận không bị block vĩnh viễn và có thể thoát khi \code{running\_} chuyển trạng thái.
+
+\begin{lstlisting}[language=C++, caption={Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}, label={lst:rtp_receiver_timeout}]
+socket_->setTimeout(5);  // milliseconds (UDP)
+...
+try {
+    int bytes = socket_->recvFrom(buffer, sizeof(buffer), senderAddr);
+    ...
+} catch (const SocketTimeout&) {
+    continue;  // loop again to check running_
+}
+\end{lstlisting}
+
+\subsubsection{RTSPMessage: parse/build theo định dạng dòng}
+
+Thay vì parse ``thủ công'' rải rác, hệ thống gom chuẩn hóa RTSP ở lớp \code{RTSPMessage}. Lớp này cung cấp:
+(1) \code{buildRequest/buildResponse} để sinh chuỗi RTSP chuẩn CRLF,
+(2) \code{parseRequest/parseResponse} để tách request line/status line và headers vào \code{std::map},
+(3) quy ước đọc \code{CSeq} thành số nguyên để dùng trực tiếp.
+
+\begin{lstlisting}[language=C++, caption={Sinh request RTSP chuẩn CRLF và header CSeq}, label={lst:rtsp_build_request}]
+std::string RTSPMessage::buildRequest(const std::string& method,
+                                      const std::string url,
+                                      int cseq,
+                                      const std::map<std::string,std::string>& headers) {
+    std::stringstream ss;
+    ss << method << " " << url << " RTSP/1.0\r\n";
+    ss << "CSeq: " << cseq << "\r\n";
+    for (const auto& pair : headers) ss << pair.first << ": " << pair.second << "\r\n";
+    ss << "\r\n";
+    return ss.str();
+}
+\end{lstlisting}
+
+\subsubsection{RTPPacket và xử lý wrap-around sequence number}
+
+\code{RTPPacket} hiện thực header RTP (version, marker, payload type, sequence number, timestamp, SSRC) và payload. Một điểm dễ sai trong RTP là \textbf{sequence number 16-bit} sẽ wrap-around; vì vậy project bổ sung hàm \code{sequenceDifference()} để đo khoảng cách sequence theo modulo $2^{16}$, phục vụ thống kê mất gói ở Client và kiểm soát thứ tự ở Reassembler.
+
+\begin{lstlisting}[language=C++, caption={Tính chênh lệch sequence theo modulo để xử lý wrap-around}, label={lst:seq_diff}]
+int32_t RTPPacket::sequenceDifference(uint16_t seq1, uint16_t seq2) {
+    int32_t diff = (int32_t)seq1 - (int32_t)seq2;
+    if (diff > 32768)  diff -= 65536;
+    if (diff < -32768) diff += 65536;
+    return diff;
+}
+\end{lstlisting}
+
+\subsubsection{Builder pattern cho RTPPacket}
+
+Để giảm lỗi khi dựng packet và tăng tính ``self-documenting'', hệ thống sử dụng Builder pattern: \code{RTPPacketBuilder} yêu cầu set các trường bắt buộc (\code{sequenceNumber/timestamp/ssrc/payload}) trước khi \code{build()}. Nếu thiếu trường, builder ném \code{std::runtime\_error} để fail-fast ngay tại nơi tạo packet.
+
+\begin{lstlisting}[language=C++, caption={Builder kiểm tra các trường bắt buộc trước khi build RTP packet}, label={lst:rtp_builder_validate}]
+RTPPacket RTPPacketBuilder::build() {
+    if (!seqSet_)       throw std::runtime_error("Sequence number not set");
+    if (!timestampSet_) throw std::runtime_error("Timestamp not set");
+    if (!ssrcSet_)      throw std::runtime_error("SSRC not set");
+    if (!payloadSet_)   throw std::runtime_error("Payload not set");
+    RTPPacket packet;
+    packet.setSequenceNumber(sequenceNumber_);
+    packet.setTimestamp(timestamp_);
+    packet.setSSRC(ssrc_);
+    packet.setPayload(payload_);
+    packet.encode();  // serialize header -> raw bytes
+    return packet;
+}
+\end{lstlisting}
+
+\subsection{Server: RTSP state machine và luồng streaming RTP}
+
+\subsubsection{Mô hình đa luồng và quản lý session}
+
+\code{RTSPServer} chạy vòng lặp \code{accept()} trên TCP listen socket. Mỗi kết nối mới được gán \code{clientId}, tạo một \code{ServerWorker} và chạy nó trên một \code{std::thread} riêng. Danh sách session được bảo vệ bởi \code{std::mutex} để tránh race khi stop server.
+
+\begin{lstlisting}[language=C++, caption={Tạo thread cho từng client trong \texttt{RTSPServer::run()}}, label={lst:server_accept}]
+while (running) {
+    std::unique_ptr<Socket> clientSocket = listenSocket->accept();
+    ClientSession session;
+    session.clientId = nextClientId++;
+    session.worker = std::make_unique<ServerWorker>(session.clientId, std::move(clientSocket));
+    session.workerThread = std::thread(&ServerWorker::run, session.worker.get());
+    activeSession.push_back(std::move(session));
+}
+\end{lstlisting}
+
+\subsubsection{ServerWorker: RTSP state machine và phân phối handler}
+
+Mỗi \code{ServerWorker} duy trì state nội bộ \code{INIT/READY/PLAYING/PAUSED}. Vòng lặp \code{handleRtspRequests()} nhận request RTSP, parse, sau đó dispatch sang \code{handleSetup/handlePlay/handlePause/handleTeardown}. Việc tách handler giúp mỗi lệnh RTSP có phạm vi trách nhiệm rõ ràng (validate session, đổi state, start/stop thread streaming).
+
+\begin{lstlisting}[language=C++, caption={Dispatch lệnh RTSP theo method ở ServerWorker}, label={lst:server_dispatch}]
+auto request = RTSPMessage::parseRequest(msg);
+if (request.method == "SETUP")    response = handleSetup(request);
+else if (request.method == "PLAY")     response = handlePlay(request);
+else if (request.method == "PAUSE")    response = handlePause(request);
+else if (request.method == "TEARDOWN") response = handleTeardown(request);
+else response = RTSPMessage::buildResponse(400, "Bad Request", request.cseq);
+\end{lstlisting}
+
+\subsubsection{Streaming loop: điều phối FPS, đọc frame, encode và gửi UDP}
+
+Khi nhận PLAY hợp lệ, Worker khởi động một background thread chạy \code{streamingLoop()}. Vòng lặp này có ba bước trọng tâm: (1) đọc frame từ \code{VideoStream}, (2) encode frame thành một hoặc nhiều RTP packet (Strategy), (3) gửi packet qua UDP tới \code{clientIP\_ : clientRTPPort\_}. \code{Timer} được dùng để kiểm soát nhịp gửi theo interval.
+
+\begin{lstlisting}[language=C++, caption={Luồng streaming: đọc frame, encode RTP và gửi UDP}, label={lst:streaming_loop}]
+while (streaming_) {
+    frameTimer_->start();
+
+    std::vector<uint8_t> frame = videoStream_->nextFrame();
+    auto packets = encodingStrategy_->encode(frame, sequenceNumber_, timestamp_, ssrc_);
+
+    for (auto& packet : packets) {
+        socket_->sendTo(packet.getPacketVector().data(), packet.getLength(),
+                        clientIP_, clientRTPPort_);
+        sequenceNumber_ = packet.getSequenceNumber() + 1;
+    }
+
+    timestamp_ += 3600;   // advance timestamp per frame (project convention)
+    frameTimer_->wait();
+}
+\end{lstlisting}
+
+\subsubsection{Strategy pattern: SD vs HD và phân mảnh payload}
+
+Với video MJPEG, kích thước frame có thể vượt MTU. Để tránh UDP fragmentation ở tầng IP, hệ thống giới hạn \code{MAX\_PAYLOAD\_SIZE} (1400 bytes) và tự phân mảnh ở tầng RTP. Strategy pattern được dùng để tách logic encode: \code{SDEncodingStrategy} gửi một packet/1 frame (chỉ phù hợp frame nhỏ), còn \code{HDEncodingStrategy} chia frame thành nhiều packet, dùng marker bit để đánh dấu fragment cuối.
+
+\begin{lstlisting}[language=C++, caption={HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}, label={lst:hd_fragment}]
+while (offset < frameData.size()) {
+    size_t chunk = std::min((size_t)RTPPacket::MAX_PAYLOAD_SIZE,
+                            frameData.size() - offset);
+    bool isLast = (offset + chunk >= frameData.size());
+
+    RTPPacket pkt = RTPPacketBuilder()
+        .setSequenceNumber(seqNum++)
+        .setTimestamp(timestamp)
+        .setSSRC(ssrc)
+        .setMarker(isLast ? 1 : 0)
+        .setPayload(&frameData[offset], chunk)
+        .build();
+
+    packets.push_back(pkt);
+    offset += chunk;
+}
+\end{lstlisting}
+
+\subsubsection{VideoStream: thuật toán trích xuất frame MJPEG bằng marker JPEG}
+
+File \code{.Mjpeg} trong project là chuỗi các ảnh JPEG nối tiếp. Để trích xuất frame, \code{VideoStream} đọc file vào buffer và tìm cặp marker JPEG: SOI \code{0xFF 0xD8} (Start Of Image) và EOI \code{0xFF 0xD9} (End Of Image). Khi tìm được EOI, lớp này cắt đoạn byte tương ứng và trả về như một frame hoàn chỉnh.
+
+\begin{lstlisting}[language=C++, caption={Quét marker JPEG SOI/EOI để cắt frame trong \texttt{VideoStream::nextFrame()}}, label={lst:videostream_markers}]
+while (file_.read((char*)&byte, 1)) {
+    buffer_.push_back(byte);
+
+    if (buffer_.size() >= 2) {
+        uint8_t b1 = buffer_[buffer_.size()-2];
+        uint8_t b2 = buffer_[buffer_.size()-1];
+
+        if (!inFrame && b1 == 0xFF && b2 == 0xD8) {
+            inFrame = true; frameStart = buffer_.size() - 2;
+        }
+        if (inFrame && b1 == 0xFF && b2 == 0xD9) {
+            size_t frameEnd = buffer_.size();
+            std::vector<uint8_t> frame(buffer_.begin()+frameStart, buffer_.begin()+frameEnd);
+            buffer_.erase(buffer_.begin(), buffer_.begin()+frameEnd);
+            return frame;
         }
     }
 }
 \end{lstlisting}
 
-\subsubsection{Xử lý yêu cầu RTSP (State Machine)}
-\textbf{Lý do thiết kế:} Giao thức RTSP yêu cầu client và server phải đồng bộ về trạng thái (Ví dụ: Không thể gửi lệnh \code{PLAY} khi chưa \code{SETUP}). Sử dụng máy trạng thái (State Machine) giúp kiểm soát chặt chẽ luồng nghiệp vụ này.
+\subsection{Client: RTSP điều khiển, nhận RTP, ghép frame và buffer/cache}
 
-\textbf{Hiện thực:}
-Trong \code{ServerWorker::handleSetup}, ta kiểm tra trạng thái hiện tại phải là \code{INIT} mới cho phép chuyển sang \code{READY}.
+\subsubsection{RTSPClient: phiên điều khiển và cơ chế ``restart''}
 
-\begin{lstlisting}[language=C++, caption={Kiểm tra trạng thái trong ServerWorker.cpp}]
-std::string ServerWorker::handleSetup(const RTSPMessage::Request& request) {
-    // WHY: Validate State to ensure correct workflow
-    if (state_ != State::INIT)
-        return RTSPMessage::buildResponse(400, "Invalid State", request.cseq);
+\code{RTSPClient} chịu trách nhiệm tạo kết nối TCP đến server, gửi các request RTSP (SETUP/PLAY/PAUSE/TEARDOWN), và parse response để lấy \code{Session} ID. Với yêu cầu ``replay'' sau khi hết video, client hỗ trợ cơ chế restart bằng header \code{Restart: true} trong PLAY; server kiểm tra header này để reset \code{VideoStream} về đầu file.
 
-    // ... Logic to open video file and get RTP port ...
+\begin{lstlisting}[language=C++, caption={Client gửi PLAY kèm header Restart khi cần phát lại}, label={lst:client_play_restart}]
+std::map<std::string,std::string> headers;
+headers["Session"] = sessionId_;
+if (restart) headers["Restart"] = "true";
 
-    // Generate random Session ID
-    sessionId_ = generateSessionId();
-    state_ = State::READY; // State transition
+std::string request = RTSPMessage::buildRequest("PLAY", rtspUri_, cseq_, headers);
+socket_->send((const uint8_t*)request.c_str(), request.size());
+\end{lstlisting}
 
-    return RTSPMessage::buildResponse(200, "OK", request.cseq, 
-        {{"Session", sessionId_}, {"Transport", "..."}});
+\subsubsection{RTPReceiver: nhận UDP và thống kê mất gói}
+
+\code{RTPReceiver} chạy background thread \code{receiveLoop()} để nhận packet và chuyển cho \code{FrameReassembler}. Đồng thời, receiver cập nhật thống kê loss dựa trên chênh lệch sequence; phần này dựa trực tiếp trên \code{RTPPacket::sequenceDifference()} để xử lý wrap-around.
+
+\begin{lstlisting}[language=C++, caption={Tính packet loss dựa trên chênh lệch sequence}, label={lst:client_loss_stats}]
+int32_t diff = RTPPacket::sequenceDifference(currentSeq, lastSequenceNumber_);
+if (diff > 1) {
+    packetLost_ += static_cast<uint64_t>(diff - 1);
+}
+lastSequenceNumber_ = currentSeq;
+\end{lstlisting}
+
+\subsubsection{FrameReassembler: ghép fragment theo timestamp và marker}
+
+Đối với HD mode, một frame có thể gồm nhiều RTP packet. \code{FrameReassembler} gom các fragment theo \code{timestamp}, sắp thứ tự theo \code{sequenceNumber}, và xác định điểm kết thúc frame dựa trên marker bit. Khi frame hoàn chỉnh, reassembler nối payload và push vào \code{FrameBuffer}. Để tránh leak khi mất marker (mất gói), module cũng hỗ trợ giới hạn bộ nhớ cho map và chiến lược ``flush'' khi đổi timestamp.
+
+\begin{lstlisting}[language=C++, caption={Ghép frame khi gặp marker bit và đẩy vào buffer}, label={lst:reassemble_marker}]
+if (packet.getMarker() == 1) {
+    auto& fragments = frameFragments_[timestamp];
+    std::sort(fragments.begin(), fragments.end(),
+              [](auto& a, auto& b){ return a.getSequenceNumber() < b.getSequenceNumber(); });
+
+    std::vector<uint8_t> frameData;
+    for (auto& frag : fragments) {
+        const auto& payload = frag.getPayload();
+        frameData.insert(frameData.end(), payload.begin(), payload.end());
+    }
+
+    frameBuffer_->push(frameData);
+    frameFragments_.erase(timestamp);
 }
 \end{lstlisting}
 
-\subsection{Client Implementation}
+\subsubsection{FrameBuffer: buffer như một ``video cache'' thread-safe}
 
-\subsubsection{Giao diện tương tác (ClientUI)}
-\textbf{Lý do thiết kế:} Việc xử lý mạng (Network I/O) thường tốn thời gian và có thể block (treo) giao diện nếu chạy trên cùng một luồng UI. Tuy nhiên, với Qt Framework, ta có thể sử dụng cơ chế Signal/Slot bất đồng bộ để xử lý các sự kiện nút bấm một cách mượt mà.
+\code{FrameBuffer} là lớp trung gian quan trọng nhất để ``hấp thụ jitter'' mạng. Nó được hiện thực như một hàng đợi thread-safe, với \code{push()} từ thread nhận RTP và \code{tryPop()} từ UI thread. \code{std::mutex} và \code{std::condition\_variable} được dùng để đồng bộ; \code{close()} đảm bảo thread consumer không bị kẹt khi shutdown.
 
-\textbf{Hiện thực:}
-Khi người dùng bấm nút \code{Setup}, hàm \code{onSetupClicked} được gọi. Nó thực hiện gửi yêu cầu xuống tầng mạng và cập nhật giao diện dựa trên kết quả trả về.
+\begin{lstlisting}[language=C++, caption={FrameBuffer đồng bộ bằng mutex + condition variable}, label={lst:framebuffer_push_pop}]
+void FrameBuffer::push(const std::vector<uint8_t>& frame) {
+    std::unique_lock<std::mutex> lock(mtx_);
+    if (closed_) return;
+    buffer_.push_back(frame);
+    cv_.notify_one();
+}
 
-\begin{lstlisting}[language=C++, caption={Xử lý sự kiện Setup trong ClientUI.cpp}]
-void ClientUI::onSetupClicked() {
-    // Send SETUP command via RTSPClient object
-    bool success = rtspClient_->sendSetup(videoFile_, clientRTPPort_);
+bool FrameBuffer::tryPop(std::vector<uint8_t>& frame) {
+    std::unique_lock<std::mutex> lock(mtx_);
+    if (buffer_.empty()) return false;
+    frame = std::move(buffer_.front());
+    buffer_.pop_front();
+    return true;
+}
+\end{lstlisting}
 
-    if (success) {
-        state_ = State::READY;
-        // WHY: Update button states (Enable/Disable) 
-        // to prevent invalid user actions (e.g. clicking Play before Setup)
-        updateButtonStates(); 
-        
-        // Enable timeline slider
-        timelineSlider_->setEnabled(true);
+\subsubsection{ClientUI (Qt): prebuffer, adaptive playback và timeline buffered}
+
+Ở phía UI, state machine được đơn giản hóa thành \code{INIT/READY/PLAYING}. Khi PLAY, UI không render ngay lập tức mà đợi buffer đạt ngưỡng \code{PREBUFFER\_FRAMES}; đây là cơ chế prebuffer nhằm tạo ``độ trễ chủ động'' khoảng vài giây để chống đứt quãng. Đồng thời, UI điều chỉnh interval của \code{frameTimer\_} theo kích thước buffer để tránh tiêu thụ hết buffer khi mạng chậm.
+
+\begin{lstlisting}[language=C++, caption={Prebuffer: chỉ phát khi buffer đủ \texttt{PREBUFFER\_FRAMES}}, label={lst:ui_prebuffer}]
+if (!prebufferReady_) {
+    size_t bufferSize = frameBuffer_->size();
+    if (bufferSize >= PREBUFFER_FRAMES) {
+        prebufferReady_ = true;
     } else {
-        Logger::getInstance().log(LogLevel::ERROR, "SETUP Failed");
+        statusLabel_->setText(QString("Buffering... %1/%2 frames")
+                              .arg(bufferSize).arg(PREBUFFER_FRAMES));
+        return;
     }
 }
 \end{lstlisting}
 
-\subsubsection{Gửi yêu cầu RTSP}
-Trong \code{RTSPClient}, các lệnh được đóng gói thành chuỗi ký tự theo đúng chuẩn RFC 2326. Việc xây dựng chuỗi thủ công giúp ta kiểm soát chính xác từng byte gửi đi.
+\begin{lstlisting}[language=C++, caption={Adaptive timer: tăng interval khi buffer thấp để giảm giật}, label={lst:ui_adaptive_timer}]
+if (currentBufferSize >= 20)      frameTimer_->setInterval(38);
+else if (currentBufferSize >= 10) frameTimer_->setInterval(40);
+else if (currentBufferSize >= 5)  frameTimer_->setInterval(45);
+else                              frameTimer_->setInterval(50);
+\end{lstlisting}
 
-\begin{lstlisting}[language=C++, caption={Tạo bản tin SETUP trong RTSPClient.cpp}]
-bool RTSPClient::sendSetup(const std::string& videoFile, int clientRTPPort) {
-    std::ostringstream req;
-    // Build Request Line
-    req << "SETUP " << videoFile << " RTSP/1.0\r\n";
-    // Add required Headers
-    req << "CSeq: " << ++cseq_ << "\r\n";
-    req << "Transport: RTP/AVP/UDP;unicast;client_port=" << clientRTPPort << "-"
-        << (clientRTPPort + 1) << "\r\n";
-    req << "\r\n"; // End of Headers
+Timeline slider được mở rộng thành \code{BufferedSlider} để hiển thị vùng đã buffer (``buffered position''), tính bằng \code{currentFrame + bufferSize}. Phần vẽ bổ sung được hiện thực trong \code{paintEvent()}.
 
-    // Send via TCP Socket
-    std::string resp = sendRtspRequest(req.str());
-    
-    // ... Parse response ...
+\begin{lstlisting}[language=C++, caption={Vẽ vùng buffered trên timeline slider}, label={lst:buffered_slider_paint}]
+int bufferedPos = (bufferedValue_ - minimum()) * groove.width() / total;
+if (bufferedPos > currentPos) {
+    QRect bufferedRect = groove;
+    bufferedRect.setLeft(groove.left() + currentPos);
+    bufferedRect.setRight(groove.left() + bufferedPos);
+    painter.fillRect(bufferedRect, QColor(180, 180, 180, 200));
 }
 \end{lstlisting}
 
-\subsection{Data Protocol (RTP)}
+\subsection{Ghi nhận triển khai: logging, cấu hình và khả năng mở rộng}
 
-\subsubsection{Đóng gói gói tin (Packetization)}
-\textbf{Lý do thiết kế:} Dữ liệu video MJPEG rất lớn, không thể gửi nguyên một khung hình trong một gói UDP (vì giới hạn MTU). Ta cần sử dụng RTP (Real-time Transport Protocol) để chia nhỏ và đánh dấu thứ tự, giúp Client có thể ghép lại chính xác.
+Hệ thống sử dụng \code{Logger} (Singleton) để log đồng thời ra console và file, đảm bảo thread-safe bằng \code{std::mutex}. Việc cấu hình tách riêng ở \code{Config} (SingletonWithInit) cho phép thay đổi tham số runtime (port, video file, log level) mà không cần rebuild.
 
-\textbf{Hiện thực:}
-Lớp \code{RTPPacket} sử dụng các phép toán thao tác bit (Bitwise operations) để đóng gói các trường Header (Sequence Number, Timestamp, SSRC) vào mảng byte.
-
-\begin{lstlisting}[language=C++, caption={Đóng gói RTP Header trong RTPPacket.cpp}]
-void RTPPacket::encode() {
-    // Byte 0: Version(2), Padding(1), Extension(1), CC(4)
-    // WHY: Use Bitwise OR (|) and Shift (<<) to pack multiple fields into 1 byte
-    header_[0] = (version_ << 6) | (padding_ << 5) | (extension_ << 4) | (cc_ & 0x0F);
-
-    // Byte 1: Marker(1), PayloadType(7)
-    header_[1] = (marker_ << 7) | (payloadType_ & 0x7F);
-
-    // Byte 2,3: Sequence Number (16 bit)
-    // Split into 2 bytes (Big-Endian / Network Byte Order)
-    header_[2] = (sequenceNumber_ >> 8) & 0xFF;
-    header_[3] = sequenceNumber_ & 0xFF;
-    
-    // ... Similar for Timestamp and SSRC ...
+\begin{lstlisting}[language=C++, caption={Logger Singleton: log thread-safe và lọc theo mức}, label={lst:logger_singleton}]
+void Logger::log(LogLevel level, const std::string& message) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || level < minLevel_) return;
+    std::cout << "[" << getCurrentTime() << "] [" << levelToString(level) << "] "
+              << message << std::endl;
+    if (logFile_.is_open()) logFile_ << ...;
 }
 \end{lstlisting}
 
-Cách làm này đảm bảo gói tin RTP tạo ra tương thích hoàn toàn với các phần mềm chuẩn (như VLC, Wireshark), đồng thời tối ưu hóa băng thông vì không gửi dư thừa bất kỳ byte nào.
+Về khả năng mở rộng, các điểm đã ``cắm sẵn'' trong thiết kế gồm: Strategy cho encoding (thêm H.264/H.265 packetization), Builder cho các message phức tạp hơn, và RTSP state machine tách handler để bổ sung DESCRIBE/SET\_PARAMETER/RANGE trong tương lai mà không làm vỡ luồng chính.

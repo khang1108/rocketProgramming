@@ -3,22 +3,67 @@
 \providecommand\zref@newlabel[2]{}
 \providecommand\hyper@newdestlabel[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Implementation}{7}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Tổ chức Codebase}{7}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Server Implementation}{7}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.1}Cơ chế đa luồng (Multi-threading)}{7}{subsubsection.2.2.1}\protected@file@percent }
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces Vòng lặp chấp nhận kết nối trong RTSPServer.cpp}}{7}{lstlisting.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.2}Xử lý yêu cầu RTSP (State Machine)}{8}{subsubsection.2.2.2}\protected@file@percent }
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces Kiểm tra trạng thái trong ServerWorker.cpp}}{8}{lstlisting.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Client Implementation}{9}{subsection.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.1}Giao diện tương tác (ClientUI)}{9}{subsubsection.2.3.1}\protected@file@percent }
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces Xử lý sự kiện Setup trong ClientUI.cpp}}{9}{lstlisting.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.2}Gửi yêu cầu RTSP}{10}{subsubsection.2.3.2}\protected@file@percent }
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces Tạo bản tin SETUP trong RTSPClient.cpp}}{10}{lstlisting.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Data Protocol (RTP)}{10}{subsection.2.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.1}Đóng gói gói tin (Packetization)}{10}{subsubsection.2.4.1}\protected@file@percent }
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces Đóng gói RTP Header trong RTPPacket.cpp}}{10}{lstlisting.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Tổ chức codebase và quy ước build}{7}{subsection.2.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Phân rã module và phạm vi trách nhiệm}}{7}{table.caption.8}\protected@file@percent }
+\newlabel{tab:modules}{{4}{7}{Phân rã module và phạm vi trách nhiệm}{table.caption.8}{}}
+\newlabel{lst:cmake_root}{{1}{7}{CMake cấu hình Qt6 và chia subdirectory}{lstlisting.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces CMake cấu hình Qt6 và chia subdirectory}}{7}{lstlisting.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Common layer: chuẩn hóa giao tiếp và tiện ích dùng chung}{8}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.1}Socket wrapper và mô hình lỗi}{8}{subsubsection.2.2.1}\protected@file@percent }
+\newlabel{lst:socket_send_all}{{2}{8}{Vòng lặp \texttt {send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}{lstlisting.2}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces Vòng lặp \texttt  {send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}}{8}{lstlisting.2}\protected@file@percent }
+\newlabel{lst:rtp_receiver_timeout}{{3}{8}{Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}{lstlisting.3}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}}{8}{lstlisting.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.2}RTSPMessage: parse/build theo định dạng dòng}{9}{subsubsection.2.2.2}\protected@file@percent }
+\newlabel{lst:rtsp_build_request}{{4}{9}{Sinh request RTSP chuẩn CRLF và header CSeq}{lstlisting.4}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces Sinh request RTSP chuẩn CRLF và header CSeq}}{9}{lstlisting.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.3}RTPPacket và xử lý wrap-around sequence number}{9}{subsubsection.2.2.3}\protected@file@percent }
+\newlabel{lst:seq_diff}{{5}{10}{Tính chênh lệch sequence theo modulo để xử lý wrap-around}{lstlisting.5}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces Tính chênh lệch sequence theo modulo để xử lý wrap-around}}{10}{lstlisting.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.2.4}Builder pattern cho RTPPacket}{10}{subsubsection.2.2.4}\protected@file@percent }
+\newlabel{lst:rtp_builder_validate}{{6}{10}{Builder kiểm tra các trường bắt buộc trước khi build RTP packet}{lstlisting.6}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {6}{\ignorespaces Builder kiểm tra các trường bắt buộc trước khi build RTP packet}}{10}{lstlisting.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Server: RTSP state machine và luồng streaming RTP}{11}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.1}Mô hình đa luồng và quản lý session}{11}{subsubsection.2.3.1}\protected@file@percent }
+\newlabel{lst:server_accept}{{7}{11}{Tạo thread cho từng client trong \texttt {RTSPServer::run()}}{lstlisting.7}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {7}{\ignorespaces Tạo thread cho từng client trong \texttt  {RTSPServer::run()}}}{11}{lstlisting.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.2}ServerWorker: RTSP state machine và phân phối handler}{11}{subsubsection.2.3.2}\protected@file@percent }
+\newlabel{lst:server_dispatch}{{8}{11}{Dispatch lệnh RTSP theo method ở ServerWorker}{lstlisting.8}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {8}{\ignorespaces Dispatch lệnh RTSP theo method ở ServerWorker}}{11}{lstlisting.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.3}Streaming loop: điều phối FPS, đọc frame, encode và gửi UDP}{12}{subsubsection.2.3.3}\protected@file@percent }
+\newlabel{lst:streaming_loop}{{9}{12}{Luồng streaming: đọc frame, encode RTP và gửi UDP}{lstlisting.9}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {9}{\ignorespaces Luồng streaming: đọc frame, encode RTP và gửi UDP}}{12}{lstlisting.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.4}Strategy pattern: SD vs HD và phân mảnh payload}{12}{subsubsection.2.3.4}\protected@file@percent }
+\newlabel{lst:hd_fragment}{{10}{12}{HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}{lstlisting.10}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {10}{\ignorespaces HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}}{12}{lstlisting.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.3.5}VideoStream: thuật toán trích xuất frame MJPEG bằng marker JPEG}{13}{subsubsection.2.3.5}\protected@file@percent }
+\newlabel{lst:videostream_markers}{{11}{13}{Quét marker JPEG SOI/EOI để cắt frame trong \texttt {VideoStream::nextFrame()}}{lstlisting.11}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {11}{\ignorespaces Quét marker JPEG SOI/EOI để cắt frame trong \texttt  {VideoStream::nextFrame()}}}{13}{lstlisting.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Client: RTSP điều khiển, nhận RTP, ghép frame và buffer/cache}{14}{subsection.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.1}RTSPClient: phiên điều khiển và cơ chế ``restart''}{14}{subsubsection.2.4.1}\protected@file@percent }
+\newlabel{lst:client_play_restart}{{12}{14}{Client gửi PLAY kèm header Restart khi cần phát lại}{lstlisting.12}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {12}{\ignorespaces Client gửi PLAY kèm header Restart khi cần phát lại}}{14}{lstlisting.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.2}RTPReceiver: nhận UDP và thống kê mất gói}{14}{subsubsection.2.4.2}\protected@file@percent }
+\newlabel{lst:client_loss_stats}{{13}{14}{Tính packet loss dựa trên chênh lệch sequence}{lstlisting.13}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {13}{\ignorespaces Tính packet loss dựa trên chênh lệch sequence}}{14}{lstlisting.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.3}FrameReassembler: ghép fragment theo timestamp và marker}{15}{subsubsection.2.4.3}\protected@file@percent }
+\newlabel{lst:reassemble_marker}{{14}{15}{Ghép frame khi gặp marker bit và đẩy vào buffer}{lstlisting.14}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {14}{\ignorespaces Ghép frame khi gặp marker bit và đẩy vào buffer}}{15}{lstlisting.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.4}FrameBuffer: buffer như một ``video cache'' thread-safe}{15}{subsubsection.2.4.4}\protected@file@percent }
+\newlabel{lst:framebuffer_push_pop}{{15}{15}{FrameBuffer đồng bộ bằng mutex + condition variable}{lstlisting.15}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {15}{\ignorespaces FrameBuffer đồng bộ bằng mutex + condition variable}}{15}{lstlisting.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.4.5}ClientUI (Qt): prebuffer, adaptive playback và timeline buffered}{16}{subsubsection.2.4.5}\protected@file@percent }
+\newlabel{lst:ui_prebuffer}{{16}{16}{Prebuffer: chỉ phát khi buffer đủ \texttt {PREBUFFER\_FRAMES}}{lstlisting.16}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {16}{\ignorespaces Prebuffer: chỉ phát khi buffer đủ \texttt  {PREBUFFER\_FRAMES}}}{16}{lstlisting.16}\protected@file@percent }
+\newlabel{lst:ui_adaptive_timer}{{17}{17}{Adaptive timer: tăng interval khi buffer thấp để giảm giật}{lstlisting.17}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {17}{\ignorespaces Adaptive timer: tăng interval khi buffer thấp để giảm giật}}{17}{lstlisting.17}\protected@file@percent }
+\newlabel{lst:buffered_slider_paint}{{18}{17}{Vẽ vùng buffered trên timeline slider}{lstlisting.18}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {18}{\ignorespaces Vẽ vùng buffered trên timeline slider}}{17}{lstlisting.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Ghi nhận triển khai: logging, cấu hình và khả năng mở rộng}{17}{subsection.2.5}\protected@file@percent }
+\newlabel{lst:logger_singleton}{{19}{17}{Logger Singleton: log thread-safe và lọc theo mức}{lstlisting.19}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {19}{\ignorespaces Logger Singleton: log thread-safe và lọc theo mức}}{17}{lstlisting.19}\protected@file@percent }
 \@setckpt{sections/implementation}{
-\setcounter{page}{12}
+\setcounter{page}{19}
 \setcounter{equation}{0}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
@@ -28,12 +73,12 @@
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
 \setcounter{section}{2}
-\setcounter{subsection}{4}
-\setcounter{subsubsection}{1}
+\setcounter{subsection}{5}
+\setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
 \setcounter{figure}{0}
-\setcounter{table}{3}
+\setcounter{table}{4}
 \setcounter{svg@param@lastpage}{0}
 \setcounter{svg@param@currpage}{-1}
 \setcounter{caption@flags}{2}
@@ -43,7 +88,7 @@
 \setcounter{r@tfl@t}{0}
 \setcounter{FancyVerbLine}{0}
 \setcounter{linenumber}{1}
-\setcounter{LN@truepage}{13}
+\setcounter{LN@truepage}{20}
 \setcounter{FancyVerbWriteLine}{0}
 \setcounter{FancyVerbBufferLine}{0}
 \setcounter{FV@TrueTabGroupLevel}{0}
@@ -64,11 +109,11 @@
 \setcounter{mdf@env@i}{0}
 \setcounter{mdf@env@ii}{0}
 \setcounter{mdf@zref@counter}{0}
-\setcounter{lstnumber}{16}
-\setcounter{section@level}{3}
+\setcounter{lstnumber}{8}
+\setcounter{section@level}{2}
 \setcounter{Item}{0}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{22}
+\setcounter{bookmark@seq@number}{32}
 \setcounter{algorithm}{0}
 \setcounter{ALG@line}{0}
 \setcounter{ALG@rem}{0}
@@ -79,12 +124,12 @@
 \setcounter{ALG@tmpcounter}{0}
 \setcounter{tcbbreakpart}{1}
 \setcounter{tcblayer}{0}
-\setcounter{tcolorbox@number}{31}
+\setcounter{tcolorbox@number}{90}
 \setcounter{tcbrastercolumn}{1}
 \setcounter{tcbrasterrow}{1}
 \setcounter{tcbrasternum}{1}
 \setcounter{tcbraster}{0}
 \setcounter{tcblisting}{0}
 \setcounter{subsubsubsection}{0}
-\setcounter{lstlisting}{5}
+\setcounter{lstlisting}{19}
 }

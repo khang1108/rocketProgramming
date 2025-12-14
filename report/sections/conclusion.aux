@@ -2,8 +2,28 @@
 \providecommand{\transparent@use}[1]{}
 \providecommand\zref@newlabel[2]{}
 \providecommand\hyper@newdestlabel[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Conclusion}{22}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Tổng kết đóng góp kỹ thuật theo mã nguồn}{22}{subsection.4.1}\protected@file@percent }
+\newlabel{lst:control_data_plane}{{25}{22}{Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}{lstlisting.25}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {25}{\ignorespaces Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}}{22}{lstlisting.25}\protected@file@percent }
+\newlabel{lst:buffer_cache}{{26}{22}{Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}{lstlisting.26}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {26}{\ignorespaces Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}}{22}{lstlisting.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Hạn chế hiện tại và đề xuất cải tiến dựa trên bằng chứng mã nguồn}{22}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {4.2.0.1}(1) Tham số Timer ở Server chưa khớp mục tiêu 25 FPS.}{23}{paragraph.4.2.0.1}\protected@file@percent }
+\newlabel{lst:timer_mismatch}{{27}{23}{Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}{lstlisting.27}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {27}{\ignorespaces Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}}{23}{lstlisting.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {4.2.0.2}(2) Logic \texttt  {stop()} ở ServerWorker dùng \texttt  {static} flag có thể gây lỗi khi có nhiều worker.}{23}{paragraph.4.2.0.2}\protected@file@percent }
+\newlabel{lst:stop_static_bug}{{28}{23}{Static stop flag có thể làm dừng sai khi nhiều worker}{lstlisting.28}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {28}{\ignorespaces Static stop flag có thể làm dừng sai khi nhiều worker}}{23}{lstlisting.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {4.2.0.3}(3) Tính năng tua (seek) trên timeline hiện mới là thay đổi chỉ số hiển thị, chưa có RTSP Range.}{23}{paragraph.4.2.0.3}\protected@file@percent }
+\newlabel{lst:seek_ui_only}{{29}{23}{Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}{lstlisting.29}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {29}{\ignorespaces Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}}{23}{lstlisting.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {4.2.0.4}(4) Một số chi tiết định dạng RTSP request nên được chuẩn hóa tuyệt đối.}{24}{paragraph.4.2.0.4}\protected@file@percent }
+\newlabel{lst:teardown_spacing}{{30}{24}{Teardown request line thiếu khoảng trắng trước phiên bản}{lstlisting.30}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {30}{\ignorespaces Teardown request line thiếu khoảng trắng trước phiên bản}}{24}{lstlisting.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Kết luận}{24}{subsection.4.3}\protected@file@percent }
 \@setckpt{sections/conclusion}{
-\setcounter{page}{12}
+\setcounter{page}{25}
 \setcounter{equation}{0}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
@@ -12,13 +32,13 @@
 \setcounter{footnote}{0}
 \setcounter{mpfootnote}{0}
 \setcounter{part}{0}
-\setcounter{section}{2}
-\setcounter{subsection}{4}
-\setcounter{subsubsection}{1}
+\setcounter{section}{4}
+\setcounter{subsection}{3}
+\setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
 \setcounter{figure}{0}
-\setcounter{table}{3}
+\setcounter{table}{6}
 \setcounter{svg@param@lastpage}{0}
 \setcounter{svg@param@currpage}{-1}
 \setcounter{caption@flags}{2}
@@ -28,7 +48,7 @@
 \setcounter{r@tfl@t}{0}
 \setcounter{FancyVerbLine}{0}
 \setcounter{linenumber}{1}
-\setcounter{LN@truepage}{13}
+\setcounter{LN@truepage}{26}
 \setcounter{FancyVerbWriteLine}{0}
 \setcounter{FancyVerbBufferLine}{0}
 \setcounter{FV@TrueTabGroupLevel}{0}
@@ -49,11 +69,11 @@
 \setcounter{mdf@env@i}{0}
 \setcounter{mdf@env@ii}{0}
 \setcounter{mdf@zref@counter}{0}
-\setcounter{lstnumber}{16}
-\setcounter{section@level}{3}
+\setcounter{lstnumber}{5}
+\setcounter{section@level}{2}
 \setcounter{Item}{0}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{22}
+\setcounter{bookmark@seq@number}{41}
 \setcounter{algorithm}{0}
 \setcounter{ALG@line}{0}
 \setcounter{ALG@rem}{0}
@@ -64,12 +84,12 @@
 \setcounter{ALG@tmpcounter}{0}
 \setcounter{tcbbreakpart}{1}
 \setcounter{tcblayer}{0}
-\setcounter{tcolorbox@number}{31}
+\setcounter{tcolorbox@number}{117}
 \setcounter{tcbrastercolumn}{1}
 \setcounter{tcbrasterrow}{1}
 \setcounter{tcbrasternum}{1}
 \setcounter{tcbraster}{0}
 \setcounter{tcblisting}{0}
 \setcounter{subsubsubsection}{0}
-\setcounter{lstlisting}{5}
+\setcounter{lstlisting}{30}
 }

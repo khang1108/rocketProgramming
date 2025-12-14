@@ -1,0 +1,82 @@
+\section{Conclusion}
+
+Hệ thống đã hiện thực đầy đủ một pipeline streaming video MJPEG theo mô hình RTSP (control plane, TCP) và RTP (data plane, UDP), với cấu trúc module hóa rõ ràng (Common/Server/Client), cơ chế đa luồng để phục vụ đồng thời nhiều client, và cơ chế buffer/prebuffer ở phía client để ổn định playback khi mạng jitter.
+
+\subsection{Tổng kết đóng góp kỹ thuật theo mã nguồn}
+
+Đóng góp cốt lõi của project không chỉ nằm ở việc ``chạy được streaming'', mà ở các quyết định hiện thực giúp hệ thống dễ bảo trì và mở rộng: chuẩn hóa RTSP ở \code{RTSPMessage}, chuẩn hóa networking ở \code{Socket}, áp dụng Builder cho RTP packet để kiểm soát tính hợp lệ, Strategy cho encode để tách SD/HD và phân mảnh.
+
+\begin{lstlisting}[language=C++, caption={Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}, label={lst:control_data_plane}]
+RTSPClient::connect()  -> Socket(TCP)::connect(serverIP, serverPort);
+RTPReceiver::start()   -> Socket(UDP)::bind("0.0.0.0", clientRTPPort);
+ServerWorker::handleSetup() -> parse Transport header (client_port=...)
+ServerWorker::streamingLoop() -> Socket(UDP)::sendTo(..., clientIP, clientRTPPort);
+\end{lstlisting}
+
+Ngoài ra, lớp \code{FrameBuffer} có thể xem là một dạng ``video cache'' in-memory: nó lưu các frame đã ghép, tách biệt nhịp nhận (network-driven) khỏi nhịp phát (UI-driven). Đây là nền tảng để hiện thực prebuffer và các chính sách điều chỉnh nhịp phát theo mức buffer.
+
+\begin{lstlisting}[language=C++, caption={Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}, label={lst:buffer_cache}]
+/* Producer thread */
+frameReassembler_->frameBuffer()->push(frameData);
+
+/* Consumer (UI timer) */
+std::vector<uint8_t> frame;
+if (frameBuffer_->tryPop(frame)) { render(frame); }
+\end{lstlisting}
+
+\subsection{Hạn chế hiện tại và đề xuất cải tiến dựa trên bằng chứng mã nguồn}
+
+Một số điểm trong code hiện tại có thể ảnh hưởng độ ổn định hoặc độ chính xác timing; các đề xuất dưới đây được nêu dựa trực tiếp trên các đoạn mã hiện có.
+
+\paragraph{(1) Tham số Timer ở Server chưa khớp mục tiêu 25 FPS.}
+Trong \texttt{ServerWorker} có chú thích ``25 FPS (40ms)'' nhưng interval đang được khởi tạo là 10ms, dẫn tới nhịp gửi nhanh hơn dự kiến và có thể làm tăng tải CPU/network.
+
+\begin{lstlisting}[language=C++, caption={Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}, label={lst:timer_mismatch}]
+// Khởi tạo timer cho 25 FPS (40ms)
+frameTimer_ = std::make_unique<Timer>(10);
+\end{lstlisting}
+
+Khuyến nghị: đưa interval về 40ms hoặc đọc từ \code{Config} để đồng bộ với FPS mục tiêu và dễ hiệu chỉnh theo video.
+
+\paragraph{(2) Logic \texttt{stop()} ở ServerWorker dùng \texttt{static} flag có thể gây lỗi khi có nhiều worker.}
+Hàm \code{stop()} đang dùng \code{static std::atomic<bool> stopCalled} khiến chỉ worker đầu tiên được stop ``thực sự'', các worker còn lại sẽ return sớm. Đây là rủi ro rõ ràng nếu server phục vụ nhiều client đồng thời.
+
+\begin{lstlisting}[language=C++, caption={Static stop flag có thể làm dừng sai khi nhiều worker}, label={lst:stop_static_bug}]
+    void ServerWorker::stop() {
+        static std::atomic<bool> stopCalled{false};
+        if (stopCalled.exchange(true)) {
+            return;
+        }
+        // ...
+    }
+    \end{lstlisting}
+
+Khuyến nghị: biến \code{stopCalled} thành member per-instance hoặc bỏ hoàn toàn (vì bản thân \code{running\_} và \code{streaming\_} đã là cờ dừng).
+
+\paragraph{(3) Tính năng tua (seek) trên timeline hiện mới là thay đổi chỉ số hiển thị, chưa có RTSP Range.}
+Client cập nhật \code{currentFrame\_} theo slider nhưng không gửi yêu cầu RTSP mới để server bắt đầu từ vị trí tương ứng; do đó ``seek'' hiện tại chỉ mang tính UI/telemetry.
+
+\begin{lstlisting}[language=C++, caption={Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}, label={lst:seek_ui_only}]
+    void ClientUI::onTimelineSliderReleased() {
+        int targetFrame = timelineSlider_->value();
+        currentFrame_ = targetFrame;
+    }
+\end{lstlisting}
+
+Khuyến nghị: mở rộng RTSP với header Range (NPT hoặc frame index), và server cần hỗ trợ reset \code{VideoStream} đến offset phù hợp (có thể bằng index table hoặc scan marker nhanh).
+
+\paragraph{(4) Một số chi tiết định dạng RTSP request nên được chuẩn hóa tuyệt đối.}
+Ví dụ, trong \code{RTSPClient::sendTeardown()} dòng request line thiếu khoảng trắng trước \code{RTSP/1.0}. Đây là lỗi định dạng có thể gây fail khi tương tác với server khác.
+
+\begin{lstlisting}[language=C++, caption={Teardown request line thiếu khoảng trắng trước phiên bản}, label={lst:teardown_spacing}]
+    // Sai:
+    ss << "TEARDOWN " << rtspUri_ << "RTSP/1.0\r\n";
+    // Đúng phải là:
+    ss << "TEARDOWN " << rtspUri_ << " RTSP/1.0\r\n";
+\end{lstlisting}
+
+Khuyến nghị: thống nhất tất cả request thông qua \code{RTSPMessage::buildRequest()} để loại bỏ sai sót format.
+
+\subsection{Kết luận}
+
+Với các thành phần đã hiện thực, dự án đáp ứng yêu cầu nền tảng của một hệ thống streaming RTSP/RTP có khả năng phân mảnh frame lớn, quản lý session, và buffer hóa ở client. Đồng thời, do code đã có cấu trúc pattern rõ ràng (Builder/Strategy/Singleton) và ranh giới module sạch, hệ thống sẵn sàng để mở rộng sang các tính năng ``production-grade'' hơn như Range seek, codec khác, adaptive bitrate, và cơ chế đồng bộ A/V trong các phiên bản tiếp theo.
