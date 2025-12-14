@@ -302,6 +302,21 @@ def build_project():
             
             if msys2_qt:
                 print(f"   [INFO] Using MSYS2 MinGW toolchain from: {msys2_qt}")
+                
+                # Set MSYS2 environment TRƯỚC KHI chạy cmake
+                msys2_bin = os.path.join(msys2_qt, "bin")
+                msys2_usr_bin = os.path.join(os.path.dirname(msys2_qt), "usr", "bin")
+                
+                # Add MSYS2 to PATH (both mingw64/bin and usr/bin)
+                old_path = os.environ.get('PATH', '')
+                os.environ['PATH'] = f"{msys2_bin};{msys2_usr_bin};{old_path}"
+                
+                # Also set MSYSTEM for MSYS2 compatibility
+                os.environ['MSYSTEM'] = 'MINGW64'
+                
+                print(f"   [INFO] Added to PATH: {msys2_bin}")
+                print(f"   [INFO] Added to PATH: {msys2_usr_bin}")
+                
                 cmake_args.extend([
                     "-G", "Ninja",
                     f"-DCMAKE_PREFIX_PATH={msys2_qt}",
@@ -309,9 +324,11 @@ def build_project():
                     f"-DCMAKE_CXX_COMPILER={msys2_qt}/bin/g++.exe",
                 ])
                 
-                # Add MSYS2 to PATH for this build
-                msys2_bin = os.path.join(msys2_qt, "bin")
-                os.environ['PATH'] = f"{msys2_bin};{os.environ.get('PATH', '')}"
+                # Verify tools are accessible
+                if not shutil.which("ninja"):
+                    print("   [WARNING] Ninja not found in PATH")
+                    print("   [INFO] Install via: pacman -S mingw-w64-x86_64-ninja")
+                
             else:
                 # Fallback to Visual Studio (if available)
                 print("   [INFO] MSYS2 not found, attempting Visual Studio build...")
