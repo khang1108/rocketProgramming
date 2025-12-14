@@ -108,3 +108,170 @@ Lập trình mạng trên hệ điều hành thường yêu cầu tương tác v
     \end{tabular}
 \end{table}
 \FloatBarrier
+
+\subsection{Github Repository}
+Dự án được lưu trữ trên Github tại địa chỉ \url{https://github.com/khang1108/rocketProgramming}. Nhóm đã có đẩy code lên và cũng như là tạo các bản \code{release} cho các nền tảng Windows, macOS và Linux.
+
+\section{Tổng quan kiến trúc hoạt động}
+
+\subsection{Sơ đồ triển khai hệ thống (Deployment Diagram)}
+
+Hình \ref{fig:deployment} minh họa kiến trúc triển khai của hệ thống trên hai máy vật lý riêng biệt. Server chạy tiến trình \texttt{./server 8554}, lắng nghe các yêu cầu RTSP trên cổng TCP 8554. Client chạy tiến trình \texttt{./client}, kết nối đến Server để điều khiển phát video và nhận luồng dữ liệu RTP qua UDP. Mỗi thành phần trong sơ đồ đại diện cho một module chức năng cụ thể trong mã nguồn, từ việc xử lý giao thức RTSP, đọc và mã hóa video, đóng gói RTP, đến tái lắp ráp và hiển thị khung hình.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    machine/.style={draw, rectangle, minimum width=6cm, minimum height=10cm, thick},
+    component/.style={draw, rectangle, minimum width=4.5cm, minimum height=1cm, fill=blue!10},
+    arrow/.style={->, >=stealth, thick},
+    label/.style={font=\small}
+]
+
+% Machine 1 - Server
+\node[machine] (server_machine) at (0,0) {};
+\node[above=0.1cm of server_machine.north, font=\bfseries] {Machine 1 (Server)};
+\node[below=0.05cm of server_machine.north, font=\small\ttfamily] {./server 8554};
+
+% Server components
+\node[component] (rtsp_server) at (0, 3.5) {RTSPServer};
+\node[below=0.1cm of rtsp_server.south, font=\scriptsize] {(TCP:8554)};
+
+\node[component] (video_stream) at (0, 1.8) {VideoStream};
+\node[below=0.1cm of video_stream.south, font=\scriptsize] {(Read MJPEG)};
+
+\node[component] (encoding_ctx) at (0, 0.1) {EncodingCtx};
+\node[below=0.1cm of encoding_ctx.south, font=\scriptsize] {(Strategy)};
+
+\node[component] (rtp_builder) at (0, -1.6) {RTPPacketBuilder};
+\node[below=0.1cm of rtp_builder.south, font=\scriptsize] {(Builder)};
+
+\node[component] (udp_socket_server) at (0, -3.3) {UDP Socket};
+\node[below=0.1cm of udp_socket_server.south, font=\scriptsize] {(Send packets)};
+
+% Arrows between server components
+\draw[arrow] (rtsp_server) -- (video_stream);
+\draw[arrow] (video_stream) -- (encoding_ctx);
+\draw[arrow] (encoding_ctx) -- (rtp_builder);
+\draw[arrow] (rtp_builder) -- (udp_socket_server);
+
+% Machine 2 - Client
+\node[machine] (client_machine) at (10,0) {};
+\node[above=0.1cm of client_machine.north, font=\bfseries] {Machine 2 (Client)};
+\node[below=0.05cm of client_machine.north, font=\small\ttfamily] {./client ...};
+
+% Client components
+\node[component] (rtsp_client) at (10, 3.5) {RTSPClient};
+\node[below=0.1cm of rtsp_client.south, font=\scriptsize] {(State Pattern)};
+
+\node[component] (frame_buffer) at (10, 1.8) {FrameBuffer};
+\node[below=0.1cm of frame_buffer.south, font=\scriptsize] {(Observer)};
+
+\node[component] (frame_display) at (10, 0.1) {FrameDisplay};
+\node[below=0.1cm of frame_display.south, font=\scriptsize] {(UI)};
+
+\node[component] (frame_reassembler) at (10, -1.6) {FrameReassembler};
+
+\node[component] (rtp_receiver) at (10, -3.3) {RTPReceiver};
+\node[below=0.1cm of rtp_receiver.south, font=\scriptsize] {(UDP:25000)};
+
+% Arrows between client components
+\draw[arrow] (rtsp_client) -- (frame_buffer);
+\draw[arrow] (frame_buffer) -- (frame_display);
+\draw[arrow] (frame_reassembler) -- (frame_display);
+\draw[arrow] (rtp_receiver) -- (frame_reassembler);
+
+% Communication between machines
+\draw[<->, thick, red] (rtsp_server.east) -- (rtsp_client.west) node[midway, above, font=\small] {RTSP (TCP)};
+\draw[->, ultra thick, green!60!black] (udp_socket_server.east) -- (rtp_receiver.west) node[midway, above, font=\small] {RTP (UDP)};
+
+\end{tikzpicture}
+\caption{Sơ đồ triển khai hệ thống video streaming phân tán}
+\label{fig:deployment}
+\end{figure}
+
+\subsection{Định dạng thông điệp RTSP (RTSP Message Format)}
+
+Giao thức RTSP sử dụng cú pháp văn bản dạng ASCII, tương tự HTTP, để dễ dàng đọc và gỡ lỗi. Mỗi thông điệp RTSP bao gồm một dòng bắt đầu (Request Line hoặc Status Line), các dòng tiêu đề (Headers), và một dòng trống (\texttt{\textbackslash r\textbackslash n}) để đánh dấu kết thúc thông điệp.
+
+\subsubsection{Định dạng RTSP Request}
+Một yêu cầu RTSP từ Client gửi đến Server có cấu trúc như sau (xem Hình \ref{fig:rtsp_request}):
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    msgbox/.style={draw, rectangle, minimum width=9cm, minimum height=0.8cm, fill=yellow!10, font=\ttfamily\small, anchor=west},
+    annotation/.style={font=\small\itshape, red!70!black}
+]
+
+% Draw message box
+\draw[thick] (0,0) rectangle (10,3.5);
+
+% Content lines
+\node[msgbox] (line1) at (0.2, 2.9) {METHOD FILE RTSP/1.0\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line1.east, anchor=west] {$\leftarrow$ Request line};
+
+\node[msgbox] (line2) at (0.2, 2.0) {CSeq: <sequence\_number>\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line2.east, anchor=west] {$\leftarrow$ Mandatory header};
+
+\node[msgbox] (line3) at (0.2, 1.1) {[Additional headers]\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line3.east, anchor=west] {$\leftarrow$ Optional headers};
+
+\node[msgbox] (line4) at (0.2, 0.2) {\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line4.east, anchor=west] {$\leftarrow$ Empty line (end)};
+
+\end{tikzpicture}
+\caption{Cấu trúc thông điệp RTSP Request}
+\label{fig:rtsp_request}
+\end{figure}
+
+Trong đó:
+\begin{itemize}
+    \item \textbf{METHOD}: Phương thức điều khiển (ví dụ: \texttt{SETUP}, \texttt{PLAY}, \texttt{PAUSE}, \texttt{TEARDOWN})
+    \item \textbf{FILE}: Đường dẫn đến tài nguyên video trên Server (ví dụ: \texttt{movie.mjpeg})
+    \item \textbf{RTSP/1.0}: Phiên bản giao thức
+    \item \textbf{CSeq}: Số thứ tự yêu cầu (bắt buộc), dùng để đối chiếu với phản hồi
+    \item \textbf{Additional headers}: Các tiêu đề tùy chọn khác như \texttt{Session}, \texttt{Transport}
+\end{itemize}
+
+\subsubsection{Định dạng RTSP Response}
+Server phản hồi lại Client với thông điệp có cấu trúc như Hình \ref{fig:rtsp_response}:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    msgbox/.style={draw, rectangle, minimum width=9cm, minimum height=0.8cm, fill=green!10, font=\ttfamily\small, anchor=west},
+    annotation/.style={font=\small\itshape, blue!70!black}
+]
+
+% Draw message box
+\draw[thick] (0,0) rectangle (10,3.5);
+
+% Content lines
+\node[msgbox] (line1) at (0.2, 2.9) {RTSP/1.0 <status\_code> <reason>\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line1.east, anchor=west] {$\leftarrow$ Status line};
+
+\node[msgbox] (line2) at (0.2, 2.0) {CSeq: <sequence\_number>\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line2.east, anchor=west] {$\leftarrow$ Echo CSeq};
+
+\node[msgbox] (line3) at (0.2, 1.1) {[Additional headers]\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line3.east, anchor=west] {$\leftarrow$ Headers};
+
+\node[msgbox] (line4) at (0.2, 0.2) {\textbackslash r\textbackslash n};
+\node[annotation, right=0.2cm of line4.east, anchor=west] {$\leftarrow$ Empty line (end)};
+
+\end{tikzpicture}
+\caption{Cấu trúc thông điệp RTSP Response}
+\label{fig:rtsp_response}
+\end{figure}
+
+\noindent
+Trong đó:
+\begin{itemize}
+    \item \textbf{status\_code}: Mã trạng thái HTTP-like (ví dụ: \texttt{200} OK, \texttt{404} Not Found)
+    \item \textbf{reason}: Chuỗi mô tả trạng thái (ví dụ: \texttt{OK}, \texttt{Not Found})
+    \item \textbf{CSeq}: Phản chiếu lại số thứ tự từ yêu cầu để Client đối chiếu
+    \item \textbf{Headers}: Các thông tin bổ sung như \texttt{Session}, \texttt{Transport}, \texttt{Content-Length}
+\end{itemize}
+
+Việc sử dụng \texttt{CSeq} (Command Sequence) trong cả Request và Response đảm bảo tính toàn vẹn của giao tiếp, đặc biệt trong môi trường mạng bất đồng bộ, giúp Client xác định chính xác phản hồi nào tương ứng với yêu cầu nào khi có nhiều yêu cầu được gửi đồng thời.

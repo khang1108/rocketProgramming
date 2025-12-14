@@ -32,7 +32,7 @@ Một số điểm trong code hiện tại có thể ảnh hưởng độ ổn �
 Trong \texttt{ServerWorker} có chú thích ``25 FPS (40ms)'' nhưng interval đang được khởi tạo là 10ms, dẫn tới nhịp gửi nhanh hơn dự kiến và có thể làm tăng tải CPU/network.
 
 \begin{lstlisting}[language=C++, caption={Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}, label={lst:timer_mismatch}]
-// Khởi tạo timer cho 25 FPS (40ms)
+// Initialize timer for 25 FPS (40ms)
 frameTimer_ = std::make_unique<Timer>(10);
 \end{lstlisting}
 
@@ -42,14 +42,14 @@ Khuyến nghị: đưa interval về 40ms hoặc đọc từ \code{Config} để
 Hàm \code{stop()} đang dùng \code{static std::atomic<bool> stopCalled} khiến chỉ worker đầu tiên được stop ``thực sự'', các worker còn lại sẽ return sớm. Đây là rủi ro rõ ràng nếu server phục vụ nhiều client đồng thời.
 
 \begin{lstlisting}[language=C++, caption={Static stop flag có thể làm dừng sai khi nhiều worker}, label={lst:stop_static_bug}]
-    void ServerWorker::stop() {
-        static std::atomic<bool> stopCalled{false};
-        if (stopCalled.exchange(true)) {
-            return;
-        }
-        // ...
+void ServerWorker::stop() {
+    static std::atomic<bool> stopCalled{false};
+    if (stopCalled.exchange(true)) {
+        return;
     }
-    \end{lstlisting}
+    // ...
+}
+\end{lstlisting}
 
 Khuyến nghị: biến \code{stopCalled} thành member per-instance hoặc bỏ hoàn toàn (vì bản thân \code{running\_} và \code{streaming\_} đã là cờ dừng).
 
@@ -57,10 +57,10 @@ Khuyến nghị: biến \code{stopCalled} thành member per-instance hoặc bỏ
 Client cập nhật \code{currentFrame\_} theo slider nhưng không gửi yêu cầu RTSP mới để server bắt đầu từ vị trí tương ứng; do đó ``seek'' hiện tại chỉ mang tính UI/telemetry.
 
 \begin{lstlisting}[language=C++, caption={Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}, label={lst:seek_ui_only}]
-    void ClientUI::onTimelineSliderReleased() {
-        int targetFrame = timelineSlider_->value();
-        currentFrame_ = targetFrame;
-    }
+void ClientUI::onTimelineSliderReleased() {
+    int targetFrame = timelineSlider_->value();
+    currentFrame_ = targetFrame;
+}
 \end{lstlisting}
 
 Khuyến nghị: mở rộng RTSP với header Range (NPT hoặc frame index), và server cần hỗ trợ reset \code{VideoStream} đến offset phù hợp (có thể bằng index table hoặc scan marker nhanh).
@@ -69,10 +69,11 @@ Khuyến nghị: mở rộng RTSP với header Range (NPT hoặc frame index), v
 Ví dụ, trong \code{RTSPClient::sendTeardown()} dòng request line thiếu khoảng trắng trước \code{RTSP/1.0}. Đây là lỗi định dạng có thể gây fail khi tương tác với server khác.
 
 \begin{lstlisting}[language=C++, caption={Teardown request line thiếu khoảng trắng trước phiên bản}, label={lst:teardown_spacing}]
-    // Sai:
-    ss << "TEARDOWN " << rtspUri_ << "RTSP/1.0\r\n";
-    // Đúng phải là:
-    ss << "TEARDOWN " << rtspUri_ << " RTSP/1.0\r\n";
+// Wrong:
+ss << "TEARDOWN " << rtspUri_ << "RTSP/1.0\r\n";
+
+// Correct:
+ss << "TEARDOWN " << rtspUri_ << " RTSP/1.0\r\n";
 \end{lstlisting}
 
 Khuyến nghị: thống nhất tất cả request thông qua \code{RTSPMessage::buildRequest()} để loại bỏ sai sót format.

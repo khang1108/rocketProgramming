@@ -156,6 +156,140 @@ else if (request.method == "TEARDOWN") response = handleTeardown(request);
 else response = RTSPMessage::buildResponse(400, "Bad Request", request.cseq);
 \end{lstlisting}
 
+\subsubsection{RTSP State Machine: mô hình chuyển đổi trạng thái nghiêm ngặt}
+
+Hệ thống RTSP hoạt động dựa trên một máy trạng thái hữu hạn (Finite State Machine - FSM) với các quy tắc chuyển đổi nghiêm ngặt. Điều này đảm bảo rằng Client và Server luôn đồng bộ về trạng thái phiên làm việc, tránh các lỗi logic như gửi PAUSE khi chưa PLAY hoặc PLAY khi chưa SETUP.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=3cm,
+    state/.style={circle, draw, thick, minimum size=2cm, font=\bfseries},
+    transition/.style={->, >=stealth, thick, font=\small}
+]
+
+% States
+\node[state, fill=gray!20] (init) at (0,0) {INIT};
+\node[state, fill=blue!20] (ready) at (5,0) {READY};
+\node[state, fill=green!20] (playing) at (10,0) {PLAYING};
+\node[state, fill=yellow!20] (paused) at (7.5,-3) {PAUSED};
+
+% Transitions
+\draw[transition] (init) -- node[above] {SETUP} (ready);
+\draw[transition] (ready) -- node[above] {PLAY} (playing);
+\draw[transition, bend left=20] (playing) -- node[right] {PAUSE} (paused);
+\draw[transition, bend left=20] (paused) -- node[left] {PLAY} (playing);
+\draw[transition, bend right=30] (ready) to node[below, sloped] {TEARDOWN} (init);
+\draw[transition, bend right=30] (paused) to node[below] {TEARDOWN} (init);
+\draw[transition, bend left=40] (playing) to node[above, sloped, pos=0.3] {TEARDOWN} (init);
+
+\end{tikzpicture}
+\caption{Máy trạng thái RTSP với các chuyển đổi hợp lệ}
+\label{fig:rtsp_state_machine}
+\end{figure}
+
+Ý nghĩa và điều kiện của từng trạng thái được mô tả trong Bảng \ref{tab:rtsp_states}:
+
+\FloatBarrier
+\begin{table}[H]
+\centering
+\caption{Các trạng thái RTSP và điều kiện chuyển đổi}
+\label{tab:rtsp_states}
+\begin{tabular}{p{0.15\textwidth}p{0.35\textwidth}p{0.4\textwidth}}
+\toprule
+\textbf{Trạng thái} & \textbf{Ý nghĩa} & \textbf{Chuyển đổi hợp lệ} \\
+\midrule
+\texttt{INIT} & Trạng thái khởi tạo, chưa có session nào được thiết lập. & Chỉ chấp nhận \texttt{SETUP}. \\
+\texttt{READY} & Session đã được tạo, tài nguyên đã cấp phát, sẵn sàng streaming. & Chấp nhận \texttt{PLAY} (chuyển sang PLAYING) hoặc \texttt{TEARDOWN} (về INIT). \\
+\texttt{PLAYING} & Đang truyền dữ liệu RTP qua UDP. & Chấp nhận \texttt{PAUSE} (chuyển sang PAUSED) hoặc \texttt{TEARDOWN} (về INIT). \\
+\texttt{PAUSED} & Tạm dừng streaming nhưng vẫn giữ session. & Chấp nhận \texttt{PLAY} (tiếp tục streaming) hoặc \texttt{TEARDOWN} (về INIT). \\
+\bottomrule
+\end{tabular}
+\end{table}
+\FloatBarrier
+
+\textbf{Lý do thiết kế State Machine:} Máy trạng thái giúp hệ thống có thể kiểm tra tính hợp lệ của mỗi request dựa trên trạng thái hiện tại. Ví dụ, nếu Client gửi PLAY khi đang ở trạng thái INIT (chưa SETUP), Server sẽ trả về lỗi \texttt{455 Method Not Valid in This State}. Điều này đảm bảo tính nhất quán của giao thức và tránh các hành vi không xác định.
+
+\begin{lstlisting}[language=C++, caption={Validation state trước khi xử lý PLAY request}, label={lst:state_validation}]
+std::string ServerWorker::handlePlay(const RTSPRequest& request) {
+    if (state_ != State::READY && state_ != State::PAUSED) {
+        return RTSPMessage::buildResponse(455, "Method Not Valid in This State", 
+                                         request.cseq);
+    }
+    // ... proceed with PLAY logic
+    state_ = State::PLAYING;
+    return RTSPMessage::buildResponse(200, "OK", request.cseq, headers);
+}
+\end{lstlisting}
+
+\subsubsection{RTSP Sequence Diagram: luồng tương tác đầy đủ giữa Client và Server}
+
+Để hiểu rõ hơn về cách RTSP và RTP phối hợp, Hình \ref{fig:rtsp_sequence} minh họa một phiên làm việc hoàn chỉnh từ lúc Client kết nối đến khi kết thúc session.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1cm,
+    entity/.style={rectangle, draw, thick, minimum width=2.5cm, minimum height=1cm, fill=blue!10, align=center},
+    message/.style={->, >=stealth, thick},
+    response/.style={<-, >=stealth, thick, dashed}
+]
+
+% Entities
+\node[entity] (client) at (0,0) {\textbf{Client}};
+\node[entity] (server) at (8,0) {\textbf{Server}};
+
+% Lifelines
+\draw[thick, dashed] (client.south) -- (0,-16);
+\draw[thick, dashed] (server.south) -- (8,-16);
+
+% Messages
+\draw[message] (0,-1) -- node[above, sloped, font=\small] {SETUP (Transport: RTP/UDP)} (8,-2);
+\draw[response] (0,-2.5) -- node[above, sloped, font=\small] {200 OK (Session: 123)} (8,-2);
+
+\draw[message] (0,-3.5) -- node[above, sloped, font=\small] {PLAY (Session: 123)} (8,-4.5);
+\draw[response] (0,-5) -- node[above, sloped, font=\small] {200 OK} (8,-4.5);
+
+% RTP data flow
+\draw[->, ultra thick, green!60!black] (8,-6) -- node[above, font=\small] {RTP packets (UDP)} (0,-7);
+\draw[->, ultra thick, green!60!black] (8,-7.5) -- (0,-8.5);
+\draw[->, ultra thick, green!60!black] (8,-9) -- (0,-10);
+
+% PAUSE
+\draw[message] (0,-11) -- node[above, sloped, font=\small] {PAUSE (Session: 123)} (8,-12);
+\draw[response] (0,-12.5) -- node[above, sloped, font=\small] {200 OK} (8,-12);
+
+% TEARDOWN
+\draw[message] (0,-13.5) -- node[above, sloped, font=\small] {TEARDOWN (Session: 123)} (8,-14.5);
+\draw[response] (0,-15) -- node[above, sloped, font=\small] {200 OK} (8,-14.5);
+
+% Annotations
+\node[font=\scriptsize, text width=2.5cm, align=center] at (-2,-2) {Client gửi cổng RTP};
+\node[font=\scriptsize, text width=2.5cm, align=center] at (10,-2.5) {Server tạo Session ID};
+\node[font=\scriptsize, text width=2.5cm, align=center] at (10,-5.5) {Bắt đầu streaming loop};
+\node[font=\scriptsize, text width=2.5cm, align=center] at (4,-8.5) {Luồng dữ liệu video};
+\node[font=\scriptsize, text width=2.5cm, align=center] at (10,-12.5) {Dừng streaming, giữ session};
+\node[font=\scriptsize, text width=2.5cm, align=center] at (10,-15) {Giải phóng tài nguyên};
+
+\end{tikzpicture}
+\caption{Sequence diagram của một phiên RTSP/RTP hoàn chỉnh}
+\label{fig:rtsp_sequence}
+\end{figure}
+
+\textbf{Giải thích chi tiết các bước:}
+
+\begin{enumerate}
+\item \textbf{SETUP phase:} Client gửi cổng UDP mà nó sẽ lắng nghe RTP (ví dụ: 25000) trong header \texttt{Transport}. Server phản hồi với \texttt{Session ID} (dùng để nhận diện phiên này trong các request sau) và cổng UDP của Server. Đây là bước chuẩn bị tài nguyên.
+
+\item \textbf{PLAY phase:} Client gửi PLAY kèm Session ID. Server khởi động background thread để đọc video file, encode thành RTP packets và gửi qua UDP. Lưu ý rằng RTSP response trả về ngay lập tức, không đợi streaming loop chạy.
+
+\item \textbf{RTP streaming:} Luồng dữ liệu RTP chảy độc lập qua UDP, không có acknowledgment. Đây là điểm khác biệt quan trọng: control plane (RTSP/TCP) và data plane (RTP/UDP) tách biệt hoàn toàn.
+
+\item \textbf{PAUSE:} Dừng streaming loop nhưng không giải phóng session. Client có thể gửi PLAY lại để tiếp tục từ frame hiện tại.
+
+\item \textbf{TEARDOWN:} Dọn dẹp hoàn toàn, đóng socket UDP, giải phóng Session ID. Client cần SETUP lại nếu muốn xem tiếp.
+\end{enumerate}
+
 \subsubsection{Streaming loop: điều phối FPS, đọc frame, encode và gửi UDP}
 
 Khi nhận PLAY hợp lệ, Worker khởi động một background thread chạy \code{streamingLoop()}. Vòng lặp này có ba bước trọng tâm: (1) đọc frame từ \code{VideoStream}, (2) encode frame thành một hoặc nhiều RTP packet (Strategy), (3) gửi packet qua UDP tới \code{clientIP\_ : clientRTPPort\_}. \code{Timer} được dùng để kiểm soát nhịp gửi theo interval.
@@ -177,6 +311,88 @@ while (streaming_) {
     frameTimer_->wait();
 }
 \end{lstlisting}
+
+\subsubsection{Thuật toán Server Streaming Loop: điều phối chính xác theo FPS}
+
+Streaming loop là trái tim của Server, chịu trách nhiệm duy trì tốc độ phát video ổn định. Hình \ref{fig:streaming_loop_flowchart} minh họa thuật toán chi tiết:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    startstop/.style={rectangle, rounded corners, draw, thick, minimum width=3cm, minimum height=0.8cm, fill=red!20, align=center},
+    process/.style={rectangle, draw, thick, minimum width=3.5cm, minimum height=0.8cm, fill=blue!10, align=center},
+    decision/.style={diamond, draw, thick, minimum width=3cm, minimum height=1.2cm, fill=yellow!20, aspect=2, align=center},
+    arrow/.style={->, >=stealth, thick}
+]
+
+\node[startstop] (start) at (0,0) {Start Streaming};
+\node[decision] (check) at (0,-1.5) {streaming\_?};
+\node[process] (timer_start) at (0,-3) {Timer.start()};
+\node[process] (read_frame) at (0,-4.2) {frame = VideoStream.nextFrame()};
+\node[process] (encode) at (0,-5.4) {packets = Strategy.encode(frame)};
+\node[decision] (has_packets) at (0,-7) {packets empty?};
+\node[process] (send_loop) at (0,-8.5) {For each packet};
+\node[process] (send_udp) at (0,-9.7) {UDP.sendTo(packet, clientIP)};
+\node[process] (inc_seq) at (0,-10.9) {sequenceNumber++};
+\node[process] (inc_ts) at (0,-12.1) {timestamp += 3600};
+\node[process] (timer_wait) at (0,-13.3) {Timer.wait()};
+\node[startstop] (stop) at (6,-1.5) {Stop};
+
+\draw[arrow] (start) -- (check);
+\draw[arrow] (check) -- node[right] {true} (timer_start);
+\draw[arrow] (check) -- node[above] {false} (stop);
+\draw[arrow] (timer_start) -- (read_frame);
+\draw[arrow] (read_frame) -- (encode);
+\draw[arrow] (encode) -- (has_packets);
+\draw[arrow] (has_packets) -- node[right] {no} (send_loop);
+\draw[arrow] (has_packets) -| node[above, pos=0.2] {yes (error)} (6,-7) |- (timer_wait);
+\draw[arrow] (send_loop) -- (send_udp);
+\draw[arrow] (send_udp) -- (inc_seq);
+\draw[arrow] (inc_seq) -- (inc_ts);
+\draw[arrow] (inc_ts) -- (timer_wait);
+\draw[arrow] (timer_wait) -| (-3,-1.5) |- (check);
+
+\end{tikzpicture}
+\caption{Flowchart thuật toán Server Streaming Loop}
+\label{fig:streaming_loop_flowchart}
+\end{figure}
+
+\textbf{Giải thích chi tiết thuật toán:}
+
+\paragraph{Bước 1 - Kiểm tra cờ streaming\_:} Đây là atomic boolean cho phép thread chính dừng loop từ bên ngoài (khi nhận PAUSE hoặc TEARDOWN). Việc kiểm tra ở đầu loop đảm bảo thread có thể thoát ngay lập tức.
+
+\paragraph{Bước 2 - Timer.start():} Ghi nhận thời điểm bắt đầu xử lý frame. Timer sử dụng \texttt{std::chrono::high\_resolution\_clock} để đo thời gian chính xác. Đây là điểm bắt đầu của "budget thời gian" cho frame này.
+
+\paragraph{Bước 3 - Đọc frame từ VideoStream:} \texttt{VideoStream} scan file MJPEG để tìm marker SOI/EOI (sẽ giải thích chi tiết ở phần sau). Nếu hết video, \texttt{nextFrame()} có thể trả về frame rỗng hoặc loop lại từ đầu (tùy cấu hình).
+
+\paragraph{Bước 4 - Encode frame thành RTP packets:} Strategy pattern được áp dụng tại đây. \texttt{EncodingStrategy} nhận frame (có thể lớn tới vài trăm KB), chia thành nhiều fragments nếu cần, và wrap mỗi fragment vào RTP packet với sequence number tăng dần.
+
+\paragraph{Bước 5 - Gửi tất cả packets qua UDP:} Vòng lặp đi qua từng packet và gọi \texttt{sendTo()} với địa chỉ \texttt{clientIP:clientRTPPort}. UDP không đảm bảo thứ tự hay độ tin cậy, nhưng đổi lại có độ trễ thấp. Sequence number trong RTP header sẽ giúp Client sắp xếp lại.
+
+\paragraph{Bước 6 - Tăng timestamp:} Timestamp trong RTP không phải là wall-clock time, mà là "media time". Dự án sử dụng convention \texttt{timestamp += 3600} mỗi frame (tương ứng với 90kHz clock rate của RTP, chia cho 25 FPS). Điều này giúp Client biết khoảng cách thời gian giữa các frame.
+
+\paragraph{Bước 7 - Timer.wait():} Đây là bước quan trọng nhất để kiểm soát FPS. Timer tính toán thời gian đã dùng (từ start() đến wait()) và sleep phần còn lại để đạt interval mục tiêu (ví dụ: 40ms cho 25 FPS). Nếu xử lý frame mất quá lâu (> 40ms), \texttt{wait()} sẽ return ngay lập tức mà không sleep, tránh "nợ" thời gian tích lũy.
+
+\begin{lstlisting}[language=C++, caption={Timer.wait() chỉ sleep phần thời gian còn lại của interval}, label={lst:timer_wait_logic}]
+void Timer::wait() {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime_);
+    auto remaining = std::chrono::milliseconds(intervalMs_) - elapsed;
+    
+    if (remaining.count() > 0) {
+        std::this_thread::sleep_for(remaining);
+    }
+    // else: frame processing took too long, skip sleep
+}
+\end{lstlisting}
+
+\textbf{Tại sao thiết kế như vậy?} Cách tiếp cận "budget-based timing" này đảm bảo:
+\begin{itemize}
+\item FPS ổn định ngay cả khi thời gian xử lý biến động
+\item Không tích lũy lag khi một frame xử lý chậm (skip sleep thay vì queue up delay)
+\item Client nhận được luồng video với bitrate dự đoán được, giúp buffer hoạt động hiệu quả
+\end{itemize}
 
 \subsubsection{Strategy pattern: SD vs HD và phân mảnh payload}
 
@@ -200,6 +416,52 @@ while (offset < frameData.size()) {
     offset += chunk;
 }
 \end{lstlisting}
+
+\subsubsection{Giải thích chi tiết về RTP Fragmentation: tại sao cần và cách hoạt động}
+
+\textbf{Vấn đề MTU và IP Fragmentation:} Mạng Ethernet tiêu chuẩn có MTU (Maximum Transmission Unit) là 1500 bytes. Nếu gói UDP vượt quá MTU, tầng IP sẽ tự động phân mảnh (IP fragmentation). Tuy nhiên, với UDP, nếu \textit{bất kỳ} fragment nào bị mất, toàn bộ gói sẽ bị discard. Đối với video streaming, điều này không chấp nhận được.
+
+\textbf{Giải pháp Application-Level Fragmentation:} Thay vì để IP phân mảnh, hệ thống chủ động chia frame thành nhiều RTP packets nhỏ hơn (mỗi packet $\leq$ 1400 bytes payload). Khi đó:
+\begin{itemize}
+\item Mỗi RTP packet đi trong một UDP datagram riêng, không bị phân mảnh ở tầng IP
+\item Nếu một packet bị mất, Client vẫn có thể nhận các packets khác của cùng frame
+\item Với MJPEG, việc mất một phần frame chỉ gây méo hình một phần, vẫn hiển thị được (graceful degradation)
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.3cm,
+    frame/.style={rectangle, draw, thick, minimum width=8cm, minimum height=1cm, fill=orange!20, align=center},
+    packet/.style={rectangle, draw, thick, minimum width=2.3cm, minimum height=0.8cm, fill=blue!10, align=center},
+    arrow/.style={->, >=stealth, thick}
+]
+
+% Large frame
+\node[frame] (frame) at (0,0) {MJPEG Frame (200 KB)};
+
+% Arrow down
+\draw[arrow] (frame.south) -- (0,-1.5) node[midway, right] {Fragment};
+
+% RTP packets
+\node[packet] (p1) at (-3.5,-2) {RTP \#1\\1400 B};
+\node[packet] (p2) at (-1,-2) {RTP \#2\\1400 B};
+\node[packet] (p3) at (1.5,-2) {RTP \#3\\1400 B};
+\node (dots) at (4,-2) {...};
+\node[packet] (pn) at (6,-2) {RTP \#N\\800 B\\(M=1)};
+
+% Annotations
+\node[below=0.1cm of p1, font=\scriptsize] {M=0, Seq=100};
+\node[below=0.1cm of p2, font=\scriptsize] {M=0, Seq=101};
+\node[below=0.1cm of p3, font=\scriptsize] {M=0, Seq=102};
+\node[below=0.1cm of pn, font=\scriptsize] {Marker set};
+
+\end{tikzpicture}
+\caption{Fragmentation một frame MJPEG thành nhiều RTP packets}
+\label{fig:rtp_fragmentation}
+\end{figure}
+
+\textbf{Vai trò của Marker Bit:} Bit M (Marker) trong RTP header được set = 1 \textit{chỉ} ở packet cuối cùng của frame. Client sử dụng marker để biết khi nào đã nhận đủ fragments và có thể reassemble. Nếu không có marker, Client sẽ không biết khi nào frame kết thúc, đặc biệt khi các frames có kích thước khác nhau.
 
 \subsubsection{VideoStream: thuật toán trích xuất frame MJPEG bằng marker JPEG}
 
@@ -225,6 +487,74 @@ while (file_.read((char*)&byte, 1)) {
     }
 }
 \end{lstlisting}
+
+Thuật toán này dựa trên cấu trúc của định dạng JPEG: mỗi ảnh JPEG bắt đầu bằng marker SOI (Start Of Image: \texttt{0xFF 0xD8}) và kết thúc bằng EOI (End Of Image: \texttt{0xFF 0xD9}). File \texttt{.Mjpeg} chỉ đơn giản là nhiều ảnh JPEG nối tiếp nhau mà không có delimiter hay header đặc biệt.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    startstop/.style={rectangle, rounded corners, draw, thick, minimum width=2.8cm, minimum height=0.8cm, fill=red!20, align=center, font=\small},
+    process/.style={rectangle, draw, thick, minimum width=3.3cm, minimum height=0.8cm, fill=blue!10, align=center, font=\small},
+    decision/.style={diamond, draw, thick, minimum width=3cm, minimum height=1.1cm, fill=yellow!20, aspect=2, align=center, font=\small},
+    arrow/.style={->, >=stealth, thick}
+]
+
+\node[startstop] (start) at (0,0) {nextFrame()};
+\node[process] (read) at (0,-1.4) {Read 1 byte};
+\node[process] (append) at (0,-2.6) {Append to buffer};
+\node[decision] (check_size) at (0,-4.1) {buffer.size $\geq$ 2?};
+\node[process] (get_last2) at (0,-5.8) {Get last 2 bytes};
+\node[decision] (check_soi) at (0,-7.5) {0xFF 0xD8?};
+\node[process] (mark_start) at (-5,-7.5) {inFrame = true\\frameStart = pos};
+\node[decision] (check_eoi) at (0,-9.8) {0xFF 0xD9\\AND inFrame?};
+\node[process] (extract) at (5,-9.8) {Extract frame\\{[}start, end{]}};
+\node[process] (clear) at (5,-11.3) {Erase from buffer};
+\node[startstop] (return) at (5,-12.8) {Return frame};
+\node[decision] (eof) at (0,-11.8) {End of file?};
+\node[startstop] (empty) at (0,-13.8) {Return empty};
+
+% Main path
+\draw[arrow] (start) -- (read);
+\draw[arrow] (read) -- (append);
+\draw[arrow] (append) -- (check_size);
+\draw[arrow] (check_size) -- node[right, font=\footnotesize] {yes} (get_last2);
+\draw[arrow] (get_last2) -- (check_soi);
+\draw[arrow] (check_soi) -- node[right, font=\footnotesize] {no} (check_eoi);
+
+% SOI found path
+\draw[arrow] (check_soi) -| node[above, pos=0.2, font=\footnotesize] {yes} (mark_start);
+\draw[arrow] (mark_start) |- (-5,-9.8) -- (check_eoi);
+
+% EOI found path
+\draw[arrow] (check_eoi) -- node[above, font=\footnotesize] {yes} (extract);
+\draw[arrow] (extract) -- (clear);
+\draw[arrow] (clear) -- (return);
+
+% EOI not found path
+\draw[arrow] (check_eoi) -- node[right, font=\footnotesize] {no} (eof);
+\draw[arrow] (eof) -- node[right, font=\footnotesize] {yes} (empty);
+
+% Loop back path
+\draw[arrow] (check_size.west) -| node[near start, above, font=\footnotesize] {no} (-7,-4.1) |- (eof.west);
+\draw[arrow] (eof.west) -| node[near start, below, font=\footnotesize] {no} (-7,-11.8) |- (read.west);
+
+\end{tikzpicture}
+\caption{Flowchart of MJPEG frame extraction algorithm}
+\label{fig:mjpeg_extraction}
+\end{figure}
+
+\textbf{Giải thích chi tiết thuật toán:}
+
+\paragraph{Tại sao cần buffer tích lũy?} Không thể đọc từng ảnh JPEG một cách trực tiếp vì không biết trước kích thước của mỗi ảnh. Thuật toán phải scan tuần tự để tìm marker. Buffer (\texttt{std::vector<uint8\_t>}) tích lũy bytes cho đến khi phát hiện được một frame hoàn chỉnh.
+
+\paragraph{Phát hiện SOI:} Khi gặp \texttt{0xFF 0xD8}, đánh dấu \texttt{inFrame = true} và ghi nhận vị trí \texttt{frameStart}. Điều này cho biết "từ đây trở đi là dữ liệu của một frame".
+
+\paragraph{Phát hiện EOI:} Khi gặp \texttt{0xFF 0xD9} VÀ \texttt{inFrame == true}, ta biết frame đã hoàn chỉnh. Lúc này extract đoạn \texttt{[frameStart, currentPos]} từ buffer, xóa phần đã extract để tiết kiệm bộ nhớ, và return frame.
+
+\paragraph{Xử lý khi hết file:} Nếu đọc hết file mà chưa tìm thấy EOI (có thể do file corrupt hoặc frame cuối bị cắt), trả về frame rỗng. Điều này khiến streaming loop có thể phát hiện end-of-stream.
+
+\paragraph{Tối ưu hóa bộ nhớ:} Sau khi extract frame, thuật toán xóa phần đã dùng khỏi buffer bằng \texttt{buffer\_.erase()}. Điều này quan trọng vì video file có thể có hàng nghìn frames; nếu không xóa, buffer sẽ phình to không kiểm soát.
 
 \subsection{Client: RTSP điều khiển, nhận RTP, ghép frame và buffer/cache}
 
@@ -253,7 +583,81 @@ if (diff > 1) {
 lastSequenceNumber_ = currentSeq;
 \end{lstlisting}
 
-\subsubsection{FrameReassembler: ghép fragment theo timestamp và marker}
+\subsubsection{Giải thích chi tiết RTP Sequence Number Wrap-around}
+
+Trước khi đi vào thuật toán reassembly, cần hiểu rõ vấn đề wrap-around của sequence number. RTP sử dụng sequence number 16-bit, có nghĩa là sau 65535 packets, nó sẽ quay về 0. Điều này gây ra vấn đề khi so sánh thứ tự:
+
+Đoạn mã dưới đây minh hoạ phép so sánh trực tiếp bị sai khi sequence wrap-around.
+
+\begin{lstlisting}[language=C++, caption={Wrap-around: so sánh trực tiếp bị sai}, label={lst:wraparound_problem}]
+uint16_t seq1 = 65535;  // sent earlier
+uint16_t seq2 = 0;      // sent later after wrap
+if (seq1 < seq2) { /* ... */ }
+\end{lstlisting}
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+% Circle representing 16-bit space
+\draw[thick] (0,0) circle (3.5cm);
+
+% Mark points
+\node[circle, fill=blue, inner sep=2.5pt, label={[font=\small]above:0}] (zero) at (0,3.5) {};
+\node[circle, fill=green, inner sep=2.5pt, label={[font=\small]right:16383}] at (3.5,0) {};
+\node[circle, fill=orange, inner sep=2.5pt, label={[font=\small]below:32768}] at (0,-3.5) {};
+\node[circle, fill=red, inner sep=2.5pt, label={[font=\small]left:49152}] at (-3.5,0) {};
+\node[circle, fill=purple, inner sep=2.5pt, label={[font=\small]above left:65535}] at (-0.35,3.45) {};
+
+% Arrows
+\draw[->, thick, blue] (0.35,3.45) arc (85:30:3.5cm) node[midway, above right, font=\small] {increment};
+\draw[->, thick, red] (-0.35,3.45) arc (95:170:3.5cm) node[midway, above left, font=\small] {wrap};
+
+% Annotations
+\node[text width=4.5cm, align=center, font=\small] at (7.5,2) {Sequence space\\$[0, 65535]$\\modulo $2^{16}$};
+\node[text width=4.5cm, align=center, font=\small] at (7.5,0) {Diff(65535, 0) = -1\\(close)};
+\node[text width=4.5cm, align=center, font=\small] at (7.5,-2) {Diff(0, 32768) = -32768\\(far)};
+
+\end{tikzpicture}
+\caption{Không gian sequence number 16-bit và wrap-around}
+\label{fig:seq_wraparound}
+\end{figure}
+
+Công thức tính khoảng cách sequence đúng:
+
+\begin{lstlisting}[language=C++, caption={sequenceDifference function handles wrap-around correctly}, label={lst:seq_diff_correct}]
+int32_t RTPPacket::sequenceDifference(uint16_t seq1, uint16_t seq2) {
+    int32_t diff = (int32_t)seq1 - (int32_t)seq2;
+    
+    // If diff > 32768, seq2 has wrapped past 0 and is greater than seq1
+    // Example: seq1=100, seq2=65000 -> diff=100-65000=-64900
+    // Actually seq2 is older, distance = -64900 + 65536 = 636
+    if (diff > 32768)  diff -= 65536;
+    
+    // If diff < -32768, seq1 has wrapped past 0 and is greater than seq2
+    // Example: seq1=65000, seq2=100 -> diff=65000-100=64900
+    // Actually seq1 is older, distance = 64900 - 65536 = -636
+    if (diff < -32768) diff += 65536;
+    
+    return diff;
+}
+\end{lstlisting}
+
+\textbf{Ứng dụng trong phát hiện packet loss:}
+
+\begin{lstlisting}[language=C++, caption={Calculate packet loss correctly with wrap-around}, label={lst:loss_with_wraparound}]
+int32_t diff = RTPPacket::sequenceDifference(currentSeq, lastSeq);
+if (diff > 1) {
+    // Example: lastSeq=65534, currentSeq=2
+    // diff = sequenceDifference(2, 65534)
+    //      = 2 - 65534 = -65532
+    //      = -65532 + 65536 = 4
+    // Lost packets = 4 - 1 = 3 (packets 65535, 0, 1)
+    packetLost_ += (diff - 1);
+}
+\end{lstlisting}
+
+\subsubsection{FrameReassembler: thuật toán ghép fragment phức tạp với xử lý out-of-order}
 
 Đối với HD mode, một frame có thể gồm nhiều RTP packet. \code{FrameReassembler} gom các fragment theo \code{timestamp}, sắp thứ tự theo \code{sequenceNumber}, và xác định điểm kết thúc frame dựa trên marker bit. Khi frame hoàn chỉnh, reassembler nối payload và push vào \code{FrameBuffer}. Để tránh leak khi mất marker (mất gói), module cũng hỗ trợ giới hạn bộ nhớ cho map và chiến lược ``flush'' khi đổi timestamp.
 
@@ -273,6 +677,86 @@ if (packet.getMarker() == 1) {
     frameFragments_.erase(timestamp);
 }
 \end{lstlisting}
+
+Thuật toán Reassembly phải xử lý nhiều tình huống phức tạp: packets đến không theo thứ tự, packets bị mất, và nhiều frames đang được reassemble đồng thời. Hình \ref{fig:reassembly_flowchart} minh họa logic đầy đủ:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm,
+    startstop/.style={rectangle, rounded corners, draw, thick, minimum width=3cm, minimum height=0.8cm, fill=red!20, font=\small, align=center},
+    process/.style={rectangle, draw, thick, minimum width=3.5cm, minimum height=0.8cm, fill=blue!10, font=\small, align=center},
+    decision/.style={diamond, draw, thick, minimum width=2.8cm, minimum height=1cm, fill=yellow!20, aspect=2, font=\small, align=center},
+    arrow/.style={->, >=stealth, thick}
+]
+
+\node[startstop] (start) at (0,0) {onPacketReceived()};
+\node[process] (get_ts) at (0,-1.2) {ts = packet.timestamp};
+\node[process] (add_frag) at (0,-2.4) {Add to fragments{[}ts{]}};
+\node[decision] (check_marker) at (0,-3.9) {packet.marker\\== 1?};
+\node[process] (get_frags) at (4,-5.3) {frags = fragments{[}ts{]}};
+\node[process] (sort) at (4,-6.6) {Sort by sequence};
+\node[process] (concat) at (4,-7.9) {Concatenate payloads};
+\node[decision] (check_size) at (4,-9.4) {frameData\\valid?};
+\node[process] (push_buffer) at (4,-10.9) {frameBuffer.push()};
+\node[process] (erase) at (4,-12.2) {fragments.erase(ts)};
+\node[process] (inc_stat) at (4,-13.5) {framesReassembled++};
+\node[startstop] (end) at (4,-14.7) {Return};
+\node[process] (continue) at (-4,-5.3) {Keep accumulating};
+
+\draw[arrow] (start) -- (get_ts);
+\draw[arrow] (get_ts) -- (add_frag);
+\draw[arrow] (add_frag) -- (check_marker);
+\draw[arrow] (check_marker) -- node[above, font=\footnotesize] {no} (continue);
+\draw[arrow] (check_marker) -- node[right, pos=0.3, font=\footnotesize] {yes} (get_frags);
+\draw[arrow] (continue) |- (-4,-14.7) -| (end);
+\draw[arrow] (get_frags) -- (sort);
+\draw[arrow] (sort) -- (concat);
+\draw[arrow] (concat) -- (check_size);
+\draw[arrow] (check_size) -- node[right, font=\footnotesize] {yes} (push_buffer);
+\draw[arrow] (check_size) -| node[above, pos=0.2, font=\footnotesize] {no} (7,-9.4) |- (erase);
+\draw[arrow] (push_buffer) -- (erase);
+\draw[arrow] (erase) -- (inc_stat);
+\draw[arrow] (inc_stat) -- (end);
+
+\end{tikzpicture}
+\caption{Flowchart of Frame Reassembly algorithm}
+\label{fig:reassembly_flowchart}
+\end{figure}
+
+\textbf{Giải thích chi tiết các bước quan trọng:}
+
+\paragraph{Bước 1 - Nhóm theo timestamp:} Tất cả fragments của cùng một frame có cùng RTP timestamp. Reassembler dùng cấu trúc \texttt{std::map} với key là \texttt{uint32\_t} timestamp và value là \texttt{std::vector<RTPPacket>} để nhóm. Mỗi entry trong map chứa danh sách packets chưa sắp xếp của một frame.
+
+\paragraph{Bước 2 - Kiểm tra marker bit:} Chỉ khi nhận được packet có \texttt{marker=1}, reassembler mới biết "frame này đã hoàn chỉnh (ít nhất về mặt gửi)". Trước đó, các fragments chỉ được tích lũy mà không xử lý.
+
+\paragraph{Bước 3 - Sắp xếp theo sequence number:} Do UDP không đảm bảo thứ tự, các fragments có thể đến lung tung. Thuật toán sort theo sequence để ghép đúng thứ tự. Đây là lúc hàm \texttt{sequenceDifference()} quan trọng để so sánh chính xác.
+
+\begin{lstlisting}[language=C++, caption={Sort fragments handling wrap-around}, label={lst:sort_fragments}]
+std::sort(fragments.begin(), fragments.end(),
+    [](const RTPPacket& a, const RTPPacket& b) {
+        // Cannot use a.seq < b.seq due to wrap-around
+        // Use sequenceDifference for correct comparison
+        return RTPPacket::sequenceDifference(a.getSequenceNumber(), 
+                                             b.getSequenceNumber()) < 0;
+    });
+\end{lstlisting}
+
+\paragraph{Bước 4 - Concatenate payloads:} Sau khi sort, nối tất cả payloads thành một \texttt{std::vector<uint8\_t>} duy nhất. Đây chính là dữ liệu JPEG hoàn chỉnh.
+
+\paragraph{Bước 5 - Validation:} Kiểm tra \texttt{frameData} không rỗng và có thể decode được (optional: có thể check JPEG header \texttt{0xFF 0xD8}). Nếu invalid (có thể do mất quá nhiều fragments), discard frame.
+
+\paragraph{Bước 6 - Push vào FrameBuffer và cleanup:} Frame hoàn chỉnh được đẩy vào buffer thread-safe. Sau đó xóa entry trong \texttt{fragments} map để giải phóng bộ nhớ. Điều này quan trọng vì nếu không xóa, map sẽ phình to với các frames cũ.
+
+\textbf{Xử lý edge cases:}
+
+\begin{itemize}
+\item \textbf{Mất marker packet:} Nếu packet cuối (có marker) bị mất, frame sẽ không bao giờ được reassemble. Để tránh leak memory, hệ thống có thể implement timeout: nếu một timestamp không nhận thêm packet sau X giây, force flush hoặc discard.
+
+\item \textbf{Packets đến muộn:} Nếu packet có timestamp cũ đến sau khi frame đó đã được reassemble (entry đã bị erase), packet sẽ bị ignore. Đây là trade-off giữa latency và completeness.
+
+\item \textbf{Out-of-order severe:} Nếu packet có sequence number quá xa so với các packets khác của cùng timestamp, có thể là lỗi. Code có thể log warning để debug.
+\end{itemize}
 
 \subsubsection{FrameBuffer: buffer như một ``video cache'' thread-safe}
 
@@ -295,7 +779,47 @@ bool FrameBuffer::tryPop(std::vector<uint8_t>& frame) {
 }
 \end{lstlisting}
 
-\subsubsection{ClientUI (Qt): prebuffer, adaptive playback và timeline buffered}
+\subsubsection{FrameBuffer: vai trò như video cache và cơ chế Producer-Consumer}
+
+\textbf{Tại sao cần FrameBuffer?} Nếu UI render frame ngay khi nhận được từ mạng, video sẽ giật liên tục do jitter mạng. FrameBuffer đóng vai trò như một "bể chứa" (reservoir) để:
+\begin{itemize}
+\item Tách nhịp nhận mạng (bursty, không đều) khỏi nhịp hiển thị (đều đặn 25 FPS)
+\item Hấp thụ jitter: khi mạng chậm, buffer cung cấp frames từ dự trữ
+\item Cho phép prebuffering để tránh underrun ngay từ đầu
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.5cm,
+        % Đã thêm align=center vào component và buffer
+        component/.style={rectangle, draw, thick, minimum width=3cm, minimum height=1.5cm, fill=blue!10, font=\small, align=center},
+        buffer/.style={rectangle, draw, thick, minimum width=4cm, minimum height=2cm, fill=orange!20, font=\small, align=center},
+        arrow/.style={->, >=stealth, ultra thick}
+    ]
+    
+    % Các node
+    \node[component] (producer) at (0,0) {RTP Receiver\\(Producer)\\Network-driven};
+    \node[buffer] (buffer) at (5,0) {FrameBuffer\\std::deque\\(Cache)};
+    \node[component] (consumer) at (10,0) {UI Timer\\(Consumer)\\Time-driven};
+    
+    % Các mũi tên
+    \draw[arrow] (producer) -- node[above, font=\footnotesize] {push()} (buffer);
+    \draw[arrow] (buffer) -- node[above, font=\footnotesize] {tryPop()} (consumer);
+    
+    \end{tikzpicture}
+    \caption{Mô hình Producer-Consumer của FrameBuffer}
+    \label{fig:framebuffer_cache}
+    \end{figure}
+
+\textbf{Thread-safety implementation:} Do producer (RTP thread) và consumer (UI thread) chạy song song, cần đồng bộ hóa. Code sử dụng:
+\begin{itemize}
+\item \texttt{std::mutex} để bảo vệ \texttt{std::deque}
+\item \texttt{std::condition\_variable} để consumer có thể đợi hiệu quả thay vì busy-wait
+\item Cờ \texttt{closed\_} để xử lý shutdown gracefully
+\end{itemize}
+
+\subsubsection{ClientUI (Qt): prebuffer, adaptive playback và cơ chế chống jitter}
 
 Ở phía UI, state machine được đơn giản hóa thành \code{INIT/READY/PLAYING}. Khi PLAY, UI không render ngay lập tức mà đợi buffer đạt ngưỡng \code{PREBUFFER\_FRAMES}; đây là cơ chế prebuffer nhằm tạo ``độ trễ chủ động'' khoảng vài giây để chống đứt quãng. Đồng thời, UI điều chỉnh interval của \code{frameTimer\_} theo kích thước buffer để tránh tiêu thụ hết buffer khi mạng chậm.
 
@@ -318,6 +842,96 @@ else if (currentBufferSize >= 10) frameTimer_->setInterval(40);
 else if (currentBufferSize >= 5)  frameTimer_->setInterval(45);
 else                              frameTimer_->setInterval(50);
 \end{lstlisting}
+
+\textbf{Giải thích chi tiết cơ chế Prebuffering:}
+
+Prebuffering là kỹ thuật "trả độ trễ để lấy ổn định". Thay vì phát ngay khi nhận được frame đầu tiên, Client đợi cho đến khi tích lũy đủ \texttt{PREBUFFER\_FRAMES} (ví dụ: 50 frames $\approx$ 2 giây ở 25 FPS). Lý do:
+
+\begin{itemize}
+\item \textbf{Khởi động ổn định:} Vài frame đầu có thể đến chậm do TCP slow start, DNS lookup, etc. Nếu phát ngay, buffer sẽ cạn trong vài giây đầu.
+\item \textbf{Chống jitter đầu phát:} Tạo "vùng đệm dự phòng" để hấp thụ biến động mạng trong giai đoạn đầu.
+\item \textbf{User experience:} Người dùng thích chờ 2 giây để load rồi xem mượt hơn là xem giật liên tục.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    stage/.style={rectangle, draw, thick, minimum width=4.5cm, minimum height=1.5cm, fill=blue!10, align=center, font=\small},
+    arrow/.style={->, >=stealth, ultra thick}
+]
+
+\node[stage, fill=red!20] (start) at (0,0) {Streaming starts};
+\node[stage, fill=yellow!20] (buffering) at (0,-2.2) {Buffering phase\\Accumulate frames\\Show progress};
+\node[stage, fill=green!20] (playing) at (0,-4.8) {Playing\\Render frames\\Adaptive interval};
+\node[stage, fill=orange!20] (rebuffer) at (7,-4.8) {Rebuffering\\(if buffer $<$ threshold)};
+
+\draw[arrow] (start) -- (buffering);
+\draw[arrow] (buffering) -- node[right, font=\footnotesize] {buffer $\geq$ 50} (playing);
+\draw[arrow] (playing) edge[bend left=20] node[above, font=\footnotesize] {buffer = 0} (rebuffer);
+\draw[arrow] (rebuffer) edge[bend left=20] node[below, font=\footnotesize] {buffer $\geq$ 50} (playing);
+
+\end{tikzpicture}
+\caption{State flow of prebuffering mechanism}
+\label{fig:prebuffer_states}
+\end{figure}
+
+\textbf{Giải thích chi tiết cơ chế Adaptive Timer:}
+
+Adaptive timer điều chỉnh tốc độ render dựa trên mức buffer hiện tại. Ý tưởng: khi buffer thấp, render chậm lại (tăng interval) để cho mạng kịp "bắt kịp". Khi buffer cao, render nhanh hơn để tránh lag tích lũy.
+
+\begin{table}[H]
+\centering
+\caption{Chiến lược adaptive interval dựa trên buffer size}
+\label{tab:adaptive_interval}
+\begin{tabular}{ccp{0.5\textwidth}}
+\toprule
+\textbf{Buffer Size} & \textbf{Interval (ms)} & \textbf{Lý do} \\
+\midrule
+$\geq 20$ frames & 38 & Buffer dồi dào, render nhanh (26.3 FPS) để tiêu thụ buffer \\
+$\geq 10$ frames & 40 & Mức bình thường, đúng 25 FPS mục tiêu \\
+$\geq 5$ frames & 45 & Buffer thấp, chậm lại (22.2 FPS) để tránh cạn \\
+$< 5$ frames & 50 & Nguy cơ underrun, render rất chậm (20 FPS) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Tại sao không giữ cố định 25 FPS?} Nếu render cố định 40ms/frame nhưng mạng chỉ cung cấp trung bình 45ms/frame (do bandwidth thấp), buffer sẽ cạn dần và video sẽ giật. Adaptive timer "nhượng bộ" bằng cách giảm FPS xuống 20-22 để buffer có thể hồi phục.
+
+\textbf{Tại sao không tăng interval lên cao hơn (ví dụ 100ms)?} Vì điều đó làm video quá chậm (10 FPS) và không còn watchable. 20 FPS là ngưỡng thấp nhất mà con người vẫn cảm nhận được chuyển động tương đối mượt.
+
+\begin{lstlisting}[language=C++, caption={Adaptive interval logic in UI timer callback}, label={lst:adaptive_detailed}]
+void ClientUI::onRenderFrame() {
+    size_t bufferSize = frameBuffer_->size();
+    
+    // If buffer is completely empty, trigger rebuffering
+    if (bufferSize == 0) {
+        prebufferReady_ = false;  // return to buffering state
+        return;
+    }
+    
+    // Adjust interval based on buffer level
+    if (bufferSize >= 20)      frameTimer_->setInterval(38);  // 26.3 FPS
+    else if (bufferSize >= 10) frameTimer_->setInterval(40);  // 25 FPS
+    else if (bufferSize >= 5)  frameTimer_->setInterval(45);  // 22.2 FPS
+    else                       frameTimer_->setInterval(50);  // 20 FPS
+    
+    // Render frame
+    std::vector<uint8_t> frame;
+    if (frameBuffer_->tryPop(frame)) {
+        displayFrame(frame);
+        currentFrame_++;
+    }
+}
+\end{lstlisting}
+
+\textbf{Kết quả của cơ chế này:} Video có thể tự động thích nghi với điều kiện mạng:
+\begin{itemize}
+\item Mạng tốt (> 25 FPS): buffer cao, render 26 FPS, smooth
+\item Mạng trung bình (= 25 FPS): buffer ổn định, render 25 FPS
+\item Mạng chậm (< 25 FPS): buffer giảm dần, render chậm xuống 20-22 FPS, vẫn xem được
+\item Mạng rất chậm: buffer cạn, trigger rebuffering, chờ buffer đầy rồi tiếp tục
+\end{itemize}
 
 Timeline slider được mở rộng thành \code{BufferedSlider} để hiển thị vùng đã buffer (``buffered position''), tính bằng \code{currentFrame + bufferSize}. Phần vẽ bổ sung được hiện thực trong \code{paintEvent()}.
 
