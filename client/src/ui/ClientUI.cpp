@@ -488,9 +488,9 @@ void ClientUI::updateFrame() {
     size_t currentBufferSize = frameBuffer_->size();
 
     if (currentBufferSize == 0) {
-        // Only mark as end-of-video if we've DISPLAYED all frames
-        // currentFrame_ is incremented AFTER displaying, so check >= totalFrames_
-        bool isEndOfVideo = (totalFrames_ > 0 && currentFrame_ >= totalFrames_);
+        // Mark as end-of-video if:
+        // 1. We've displayed all frames (currentFrame_ >= totalFrames_), OR
+        bool isEndOfVideo = (totalFrames_ > 0 && (currentFrame_ >= totalFrames_));
 
         std::cout << "[DEBUG] Buffer empty - currentFrame_=" << currentFrame_
                   << ", totalFrames_=" << totalFrames_
@@ -501,6 +501,10 @@ void ClientUI::updateFrame() {
             LOG_INFO("[BUFFER] Video playback completed");
 
             std::cout << "[STATE] Changing PLAYING → READY (end of video)\n";
+
+            // Set currentFrame_ to totalFrames_ to ensure needRestart = true when PLAY is clicked
+            currentFrame_ = totalFrames_;
+
             state_ = State::READY;
             prebufferReady_ = false;
             fps_ = 0;
@@ -531,12 +535,16 @@ void ClientUI::updateFrame() {
         }
 
         emptyCount++;
-        if (emptyCount > 250) {
-            // Timeout case: buffer empty for 5 seconds (network issue or unexpected end)
-            std::cout << "[BUFFER] Buffer empty for 5 seconds - TIMEOUT\n";
-            LOG_INFO("[BUFFER] Buffer empty for 5 seconds - stopping playback (timeout)");
+        if (emptyCount > 50) {
+            // Timeout case: buffer empty for 2 seconds (network issue or unexpected end)
+            std::cout << "[BUFFER] Buffer empty for 2 seconds - TIMEOUT\n";
+            LOG_INFO("[BUFFER] Buffer empty for 2 seconds - stopping playback (timeout)");
 
             std::cout << "[STATE] Changing PLAYING → READY (timeout)\n";
+
+            // Set currentFrame_ to totalFrames_ to ensure needRestart = true when PLAY is clicked
+            currentFrame_ = totalFrames_;
+
             // Change state to READY (session still active for replay)
             state_ = State::READY;
             prebufferReady_ = false;

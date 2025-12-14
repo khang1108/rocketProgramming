@@ -11,6 +11,48 @@ import subprocess
 import shutil
 from pathlib import Path
 
+# ANSI Color Codes for terminal output
+class Colors:
+    """Terminal color codes"""
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    
+    # Foreground colors
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    
+    # Bright foreground colors
+    BRIGHT_RED = '\033[91m'
+    BRIGHT_GREEN = '\033[92m'
+    BRIGHT_YELLOW = '\033[93m'
+    BRIGHT_BLUE = '\033[94m'
+    BRIGHT_MAGENTA = '\033[95m'
+    BRIGHT_CYAN = '\033[96m'
+    
+    # Background colors
+    BG_BLACK = '\033[40m'
+    BG_RED = '\033[41m'
+    BG_GREEN = '\033[42m'
+    BG_YELLOW = '\033[43m'
+    BG_BLUE = '\033[44m'
+    BG_MAGENTA = '\033[45m'
+    BG_CYAN = '\033[46m'
+    BRIGHT_WHITE = '\033[97m' 
+    BG_WHITE = '\033[47m'
+
+def colored(text, color):
+    """Wrap text with ANSI color codes"""
+    # Disable colors on Windows CMD (unless using Windows Terminal/MSYS2)
+    if platform.system().lower() == "windows" and not os.environ.get('WT_SESSION'):
+        return text
+    return f"{color}{text}{Colors.RESET}"
+
 def print_banner():
     """Print setup banner"""
     print("=" * 70)
@@ -58,6 +100,10 @@ def check_qt6_installed():
     # Method 3: Check common installation paths
     qt_paths = {
         "windows": [
+            # MSYS2 Qt6 (recommended)
+            r"C:\msys64\mingw64\lib\cmake\Qt6",
+            r"C:\msys32\mingw64\lib\cmake\Qt6",
+            # Official Qt installer
             r"C:\Qt\6.8.0", r"C:\Qt\6.7.0", r"C:\Qt\6.6.0", r"C:\Qt\6.5.0",
             r"C:\Qt\6.4.0", r"C:\Qt\6.3.0", r"C:\Qt\6.2.0",
             r"C:\Program Files\Qt",
@@ -128,41 +174,100 @@ def install_qt6_linux():
         return False
 
 def install_qt6_windows():
-    """Install Qt6 on Windows using Chocolatey"""
-    print("\n[INSTALL] Installing Qt6 on Windows platform...")
+    """Install Qt6 on Windows using MSYS2"""
+    print("\n[INSTALL] Installing Qt6 on Windows via MSYS2...")
+    print("   [INFO] MSYS2 provides native Qt6 packages via pacman")
     
-    # Check if Chocolatey is installed
-    if not shutil.which("choco"):
-        print("   [INFO] Chocolatey not found, installing...")
-        print("   [NOTICE] Administrator privileges required")
-        
-        ps_script = (
-            "Set-ExecutionPolicy Bypass -Scope Process -Force; "
-            "[System.Net.ServicePointManager]::SecurityProtocol = "
-            "[System.Net.ServicePointManager]::SecurityProtocol -bor 3072; "
-            "iex ((New-Object System.Net.WebClient).DownloadString("
-            "'https://community.chocolatey.org/install.ps1'))"
-        )
-        
-        try:
-            subprocess.run(["powershell", "-Command", ps_script], 
-                         check=True, shell=True)
-        except:
-            print("   [ERROR] Chocolatey installation failed")
-            print("   [INFO] Manual installation: https://chocolatey.org/install")
-            return False
+    # Check if MSYS2 is installed
+    msys2_paths = [
+        r"C:\msys64\usr\bin\pacman.exe",
+        r"C:\msys32\usr\bin\pacman.exe",
+        os.path.expanduser(r"~\msys64\usr\bin\pacman.exe"),
+    ]
     
-    # Install Qt6
+    pacman_path = None
+    msys2_root = None
+    
+    for path in msys2_paths:
+        if os.path.exists(path):
+            pacman_path = path
+            msys2_root = os.path.dirname(os.path.dirname(os.path.dirname(path)))
+            break
+    
+    # Install MSYS2 if not found
+    if not pacman_path:
+        print("   [INFO] MSYS2 not found, installing...")
+        print("   [STEP 1] Download MSYS2 installer:")
+        print("            https://www.msys2.org/")
+        print("            File: msys2-x86_64-latest.exe")
+        print()
+        print("   [STEP 2] Run installer with default settings")
+        print("            Default path: C:\\msys64")
+        print()
+        print("   [STEP 3] After installation, MSYS2 terminal will open")
+        print("            Run: pacman -Syu")
+        print("            Close terminal when prompted")
+        print()
+        print("   [STEP 4] Re-run this setup script")
+        print()
+        
+        response = input("   Open MSYS2 download page in browser? (y/N): ").strip().lower()
+        if response == 'y':
+            try:
+                import webbrowser
+                webbrowser.open('https://www.msys2.org/')
+            except:
+                pass
+        
+        return False
+    
+    print(f"   [OK] MSYS2 found at: {msys2_root}")
+    
+    # Update MSYS2 and install Qt6
     try:
-        print("   [INFO] Installing Qt6 via Chocolatey package manager")
-        subprocess.run(["choco", "install", "qt-sdk", "-y"], 
-                      check=True, shell=True)
-        print("   [SUCCESS] Qt6 installation completed")
+        print("   [INFO] Updating MSYS2 packages...")
+        
+        # Set MSYS2 environment
+        msys2_env = os.environ.copy()
+        msys2_env['MSYSTEM'] = 'MINGW64'
+        msys2_env['PATH'] = f"{msys2_root}\\mingw64\\bin;{msys2_root}\\usr\\bin;" + msys2_env['PATH']
+        
+        # Update package database
+        subprocess.run([pacman_path, "-Sy", "--noconfirm"], 
+                      env=msys2_env, check=True)
+        
+        print("   [INFO] Installing Qt6 and dependencies...")
+        packages = [
+            "mingw-w64-x86_64-qt6-base",
+            "mingw-w64-x86_64-qt6-multimedia",
+            "mingw-w64-x86_64-qt6-multimedia-wmf",
+            "mingw-w64-x86_64-cmake",
+            "mingw-w64-x86_64-ninja",
+            "mingw-w64-x86_64-gcc",
+        ]
+        
+        subprocess.run([pacman_path, "-S", "--noconfirm"] + packages,
+                      env=msys2_env, check=True)
+        
+        print("   [SUCCESS] Qt6 installation completed via MSYS2")
+        print()
+        print("   [IMPORTANT] Add to Windows PATH:")
+        print(f"            {msys2_root}\\mingw64\\bin")
+        print()
+        print("   How to add to PATH:")
+        print("   1. Press Win + X → System → Advanced system settings")
+        print("   2. Environment Variables → System Path → Edit → New")
+        print("   3. Paste the path above")
+        print()
+        
         return True
-    
-    except subprocess.CalledProcessError:
-        print("   [ERROR] Qt6 installation failed")
-        print("   [INFO] Alternative: Download from https://www.qt.io/download")
+        
+    except subprocess.CalledProcessError as e:
+        print(f"   [ERROR] Installation failed: {e}")
+        print("   [INFO] Try manual installation:")
+        print("           1. Open MSYS2 MINGW64 terminal")
+        print("           2. Run: pacman -Syu")
+        print("           3. Run: pacman -S mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-multimedia")
         return False
 
 def install_qt6_macos():
@@ -220,10 +325,56 @@ def build_project():
     
     try:
         print("   [CONFIG] Configuring project with CMake...")
-        cmake_args = ["cmake", str(project_root)] 
+        cmake_args = ["cmake", str(project_root)]
         
+        # Windows: Detect and use MSYS2 MinGW toolchain
         if detect_platform() == "windows":
-            cmake_args.extend(["-G", "Visual Studio 17 2022"])
+            # Check for MSYS2 Qt6
+            msys2_qt_paths = [
+                r"C:\msys64\mingw64",
+                r"C:\msys32\mingw64",
+                os.path.expanduser(r"~\msys64\mingw64"),
+            ]
+            
+            msys2_qt = None
+            for path in msys2_qt_paths:
+                if os.path.exists(os.path.join(path, "lib", "cmake", "Qt6")):
+                    msys2_qt = path
+                    break
+            
+            if msys2_qt:
+                print(f"   [INFO] Using MSYS2 MinGW toolchain from: {msys2_qt}")
+                
+                # Set MSYS2 environment TRƯỚC KHI chạy cmake
+                msys2_bin = os.path.join(msys2_qt, "bin")
+                msys2_usr_bin = os.path.join(os.path.dirname(msys2_qt), "usr", "bin")
+                
+                # Add MSYS2 to PATH (both mingw64/bin and usr/bin)
+                old_path = os.environ.get('PATH', '')
+                os.environ['PATH'] = f"{msys2_bin};{msys2_usr_bin};{old_path}"
+                
+                # Also set MSYSTEM for MSYS2 compatibility
+                os.environ['MSYSTEM'] = 'MINGW64'
+                
+                print(f"   [INFO] Added to PATH: {msys2_bin}")
+                print(f"   [INFO] Added to PATH: {msys2_usr_bin}")
+                
+                cmake_args.extend([
+                    "-G", "Ninja",
+                    f"-DCMAKE_PREFIX_PATH={msys2_qt}",
+                    f"-DCMAKE_C_COMPILER={msys2_qt}/bin/gcc.exe",
+                    f"-DCMAKE_CXX_COMPILER={msys2_qt}/bin/g++.exe",
+                ])
+                
+                # Verify tools are accessible
+                if not shutil.which("ninja"):
+                    print("   [WARNING] Ninja not found in PATH")
+                    print("   [INFO] Install via: pacman -S mingw-w64-x86_64-ninja")
+                
+            else:
+                # Fallback to Visual Studio (if available)
+                print("   [INFO] MSYS2 not found, attempting Visual Studio build...")
+                cmake_args.extend(["-G", "Visual Studio 17 2022"])
         
         subprocess.run(cmake_args, check=True)
         
@@ -246,32 +397,49 @@ def build_project():
 
 def print_usage_instructions():
     """Print how to run the executables"""
-    print("\n" + "=" * 70)
-    print("Setup Complete - Build Artifacts Ready")
-    print("=" * 70)
-    print("\n[INFO] Executable binaries location: build/bin/\n")
+    print("\n" + colored("=" * 70, Colors.BRIGHT_GREEN))
+    print(colored("✓ Setup Complete - Build Artifacts Ready", Colors.BOLD + Colors.BRIGHT_GREEN))
+    print(colored("=" * 70, Colors.BRIGHT_GREEN))
+    
+    print(f"\n{colored('[INFO]', Colors.BRIGHT_CYAN)} Executable binaries location: {colored('build/bin/', Colors.YELLOW)}\n")
     
     os_type = detect_platform()
     
     if os_type == "windows":
-        print("[SERVER] Starting the RTSP server:")
-        print("   cd build\\bin")
-        print("   .\\server.exe 8554")
-        print("\n[CLIENT] Starting the video client:")
-        print("   cd build\\bin")
-        print("   .\\client.exe 127.0.0.1 8554 movie.Mjpeg 25000")
+        # Windows Instructions
+        print(colored("━━━ SERVER ━━━", Colors.BRIGHT_MAGENTA))
+        print(f"{colored('[COMMAND]', Colors.BRIGHT_YELLOW)} Starting the RTSP server:")
+        print(f"   {colored('cd build\\bin; $env:PATH = \"C:\\msys64\\mingw64\\bin;\" + $env:PATH; .\\server.exe', Colors.CYAN)} {colored('<server_port>', Colors.YELLOW)}")
+        
+        print(f"\n{colored('━━━ CLIENT ━━━', Colors.BRIGHT_MAGENTA)}")
+        print(f"{colored('[COMMAND]', Colors.BRIGHT_YELLOW)} Starting the video client:")
+        print(f"   {colored('cd build\\bin; $env:PATH = \"C:\\msys64\\mingw64\\bin;\" + $env:PATH; .\\client.exe', Colors.CYAN)} {colored('<server_host> <server_port> videos/<filename> <rtp_port>', Colors.YELLOW)}")
+        
     else:
-        print("[SERVER] Starting the RTSP server:")
-        print("   cd build/bin")
-        print("   ./server 8554")
-        print("\n[CLIENT] Starting the video client:")
-        print("   cd build/bin")
-        print("   ./client 127.0.0.1 8554 movie.Mjpeg 25000")
+        # Linux/macOS Instructions
+        print(colored("━━━ SERVER ━━━", Colors.BRIGHT_MAGENTA))
+        print(f"{colored('[COMMAND]', Colors.BRIGHT_YELLOW)} Starting the RTSP server:")
+        print(f"   {colored('cd build/bin', Colors.CYAN)}")
+        print(f"   {colored('./server', Colors.CYAN)} {colored('<server_port>', Colors.YELLOW)}")
+        
+        print(f"\n{colored('━━━ CLIENT ━━━', Colors.BRIGHT_MAGENTA)}")
+        print(f"{colored('[COMMAND]', Colors.BRIGHT_YELLOW)} Starting the video client:")
+        print(f"   {colored('cd build/bin', Colors.CYAN)}")
+        print(f"   {colored('./client', Colors.CYAN)} {colored('<server_host> <server_port> videos/<filename> <rtp_port>', Colors.YELLOW)}")
     
-    print("\n" + "=" * 70)
+    # Example usage
+    print(f"\n{colored('━━━ EXAMPLE ━━━', Colors.BRIGHT_GREEN)}")
+    if os_type == "windows":
+        print(f"{colored('Server:', Colors.BRIGHT_WHITE)} cd build\\bin; $env:PATH = \"C:\\msys64\\mingw64\\bin;\" + $env:PATH; .\\server.exe {colored('8554', Colors.GREEN)}")
+        print(f"{colored('Client:', Colors.BRIGHT_WHITE)} cd build\\bin; $env:PATH = \"C:\\msys64\\mingw64\\bin;\" + $env:PATH; .\\client.exe {colored('127.0.0.1 8554 videos/movie.Mjpeg 25000', Colors.GREEN)}")
+    else:
+        print(f"{colored('Server:', Colors.BRIGHT_WHITE)} ./server {colored('8554', Colors.GREEN)}")
+        print(f"{colored('Client:', Colors.BRIGHT_WHITE)} ./client {colored('127.0.0.1 8554 videos/movie.Mjpeg 25000', Colors.GREEN)}")
+    
+    print("\n" + colored("=" * 70, Colors.BRIGHT_GREEN))
 
 def main():
-    """Main setup function"""
+    """Main setup function"""   
     print_banner()
     
     # Detect platform

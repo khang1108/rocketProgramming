@@ -128,7 +128,9 @@ std::string ServerWorker::handleSetup(const RTSPMessage::Request& request) {
 }
 
 std::string ServerWorker::handlePlay(const RTSPMessage::Request& request) {
-    if (state_ != State::READY && state_ != State::PAUSED)
+    // Allow PLAY from READY, PAUSED, or PLAYING state
+    // PLAYING state is valid when video ended and client wants to restart
+    if (state_ != State::READY && state_ != State::PAUSED && state_ != State::PLAYING)
         return RTSPMessage::buildResponse(400, "Invalid State", request.cseq);
 
     if (!validateSessionId(request))
@@ -143,9 +145,9 @@ std::string ServerWorker::handlePlay(const RTSPMessage::Request& request) {
     // Kiểm tra nếu client yêu cầu restart bằng Range header
     auto rangeIt = request.headers.find("Range");
     if (rangeIt != request.headers.end() && rangeIt->second.find("npt=0-") != std::string::npos) {
-        // Client muốn restart từ đầu
-        if (videoStream_ && !videoStream_->hasMoreFrames()) {
-            LOG_INFO("Client requested restart (Range: npt=0-), rewinding...");
+        // Client muốn restart từ đầu - rewind bất kể video đang ở đâu
+        if (videoStream_) {
+            LOG_INFO("Client requested restart (Range: npt=0-), rewinding video stream...");
             videoStream_->rewind();
             timestamp_ = 0;
             sequenceNumber_ = 0;
