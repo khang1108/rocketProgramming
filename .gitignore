@@ -75,3 +75,4 @@ compile_commands.json
 
 setup.spec
 submit/
+*.zip

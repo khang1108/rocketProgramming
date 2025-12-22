@@ -275,3 +275,71 @@ Trong đó:
 \end{itemize}
 
 Việc sử dụng \texttt{CSeq} (Command Sequence) trong cả Request và Response đảm bảo tính toàn vẹn của giao tiếp, đặc biệt trong môi trường mạng bất đồng bộ, giúp Client xác định chính xác phản hồi nào tương ứng với yêu cầu nào khi có nhiều yêu cầu được gửi đồng thời.
+
+\subsection{Cấu trúc thư mục dự án (Project Folder Structure)}
+
+Dự án được tổ chức theo mô hình module hóa rõ ràng, tách biệt giữa Server, Client và Common library. Hình \ref{fig:folder_structure} minh họa cấu trúc thư mục chi tiết của toàn bộ mã nguồn.
+
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[basicstyle=\ttfamily\small, frame=single, xleftmargin=1cm]
+rocketProgramming/
+|-- common/
+|   |-- include/     (network, rtp, patterns, utils)
+|   |-- src/         (Socket, Logger, Config)
+|   `-- tests/       (test_rtsp_message, test_timer)
+|
+|-- server/
+|   |-- include/     (network, rtp, video)
+|   |-- src/         (RTSPServer, VideoStream, Encoding)
+|   |-- config/      (server.conf)
+|   `-- videos/      (*.Mjpeg files)
+|
+|-- client/
+|   |-- include/     (ui, network, rtp, buffer)
+|   `-- src/         (ClientUI, RTSPClient, RTPReceiver)
+|
+|-- setup/           (setup.py, setup.spec)
+\end{lstlisting}
+\caption{Cấu trúc thư mục dự án với phân chia module rõ ràng}
+\label{fig:folder_structure}
+\end{figure}
+
+\textbf{Giải thích cấu trúc:}
+
+\begin{itemize}
+    \item \textbf{common/}: Thư viện dùng chung cho cả Server và Client
+    \begin{itemize}
+        \item \texttt{include/}: Header files tổ chức theo namespace (network, rtp, patterns, utils)
+        \item \texttt{src/}: Implementation của Socket wrapper, RTP packet, Logger, Config manager
+        \item \texttt{tests/}: Unit tests cho các thành phần cốt lõi (RTSP message parsing, Timer)
+    \end{itemize}
+    
+    \item \textbf{server/}: Chương trình Server
+    \begin{itemize}
+        \item \texttt{include/network/}: RTSPServer, ServerWorker (multi-threading)
+        \item \texttt{include/rtp/}: RTP sender, packet builder
+        \item \texttt{include/video/}: VideoStream (MJPEG extraction), EncodingStrategy
+        \item \texttt{src/}: Implementation tương ứng
+        \item \texttt{config/}: File cấu hình server (port, video path, log level)
+        \item \texttt{videos/}: Chứa các file video MJPEG để streaming
+    \end{itemize}
+    
+    \item \textbf{client/}: Chương trình Client với Qt6 UI
+    \begin{itemize}
+        \item \texttt{include/ui/}: ClientUI, BufferedSlider (custom Qt widgets)
+        \item \texttt{include/network/}: RTSPClient (state machine)
+        \item \texttt{include/rtp/}: RTPReceiver, FrameReassembler
+        \item \texttt{include/buffer/}: FrameBuffer (thread-safe queue, prebuffering)
+        \item \texttt{src/}: Implementation tương ứng
+    \end{itemize}
+    
+    \item \textbf{setup/}: Scripts tự động hóa build và deployment
+    \begin{itemize}
+        \item \texttt{setup.py}: Python script kiểm tra dependencies và build (cross-platform)
+        \item \texttt{setup.spec}: PyInstaller spec để đóng gói
+        \item \texttt{setup\_windows.bat}: Batch script cho Windows
+    \end{itemize}
+\end{itemize}
+
+Cấu trúc này tuân theo nguyên tắc \textbf{separation of concerns}: mỗi module có trách nhiệm rõ ràng, header và source tách biệt, tests độc lập. Điều này giúp dễ dàng maintain, extend và test từng phần của hệ thống.

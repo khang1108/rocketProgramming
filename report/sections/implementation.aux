@@ -2,128 +2,128 @@
 \providecommand{\transparent@use}[1]{}
 \providecommand\zref@newlabel[2]{}
 \providecommand\hyper@newdestlabel[2]{}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Implementation}{10}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Tổ chức codebase và quy ước build}{10}{subsection.3.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Phân rã module và phạm vi trách nhiệm}}{10}{table.caption.11}\protected@file@percent }
-\newlabel{tab:modules}{{4}{10}{Phân rã module và phạm vi trách nhiệm}{table.caption.11}{}}
-\newlabel{lst:cmake_root}{{1}{10}{CMake cấu hình Qt6 và chia subdirectory}{lstlisting.1}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces CMake cấu hình Qt6 và chia subdirectory}}{10}{lstlisting.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Common layer: chuẩn hóa giao tiếp và tiện ích dùng chung}{11}{subsection.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}Socket wrapper và mô hình lỗi}{11}{subsubsection.3.2.1}\protected@file@percent }
-\newlabel{lst:socket_send_all}{{2}{11}{Vòng lặp \texttt {send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}{lstlisting.2}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces Vòng lặp \texttt  {send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}}{11}{lstlisting.2}\protected@file@percent }
-\newlabel{lst:rtp_receiver_timeout}{{3}{11}{Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}{lstlisting.3}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}}{11}{lstlisting.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.2}RTSPMessage: parse/build theo định dạng dòng}{12}{subsubsection.3.2.2}\protected@file@percent }
-\newlabel{lst:rtsp_build_request}{{4}{12}{Sinh request RTSP chuẩn CRLF và header CSeq}{lstlisting.4}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces Sinh request RTSP chuẩn CRLF và header CSeq}}{12}{lstlisting.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.3}RTPPacket và xử lý wrap-around sequence number}{12}{subsubsection.3.2.3}\protected@file@percent }
-\newlabel{lst:seq_diff}{{5}{13}{Tính chênh lệch sequence theo modulo để xử lý wrap-around}{lstlisting.5}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces Tính chênh lệch sequence theo modulo để xử lý wrap-around}}{13}{lstlisting.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.4}Builder pattern cho RTPPacket}{13}{subsubsection.3.2.4}\protected@file@percent }
-\newlabel{lst:rtp_builder_validate}{{6}{13}{Builder kiểm tra các trường bắt buộc trước khi build RTP packet}{lstlisting.6}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {6}{\ignorespaces Builder kiểm tra các trường bắt buộc trước khi build RTP packet}}{13}{lstlisting.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Server: RTSP state machine và luồng streaming RTP}{14}{subsection.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.1}Mô hình đa luồng và quản lý session}{14}{subsubsection.3.3.1}\protected@file@percent }
-\newlabel{lst:server_accept}{{7}{14}{Tạo thread cho từng client trong \texttt {RTSPServer::run()}}{lstlisting.7}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {7}{\ignorespaces Tạo thread cho từng client trong \texttt  {RTSPServer::run()}}}{14}{lstlisting.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.2}ServerWorker: RTSP state machine và phân phối handler}{14}{subsubsection.3.3.2}\protected@file@percent }
-\newlabel{lst:server_dispatch}{{8}{14}{Dispatch lệnh RTSP theo method ở ServerWorker}{lstlisting.8}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {8}{\ignorespaces Dispatch lệnh RTSP theo method ở ServerWorker}}{14}{lstlisting.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.3}RTSP State Machine: mô hình chuyển đổi trạng thái nghiêm ngặt}{15}{subsubsection.3.3.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Máy trạng thái RTSP với các chuyển đổi hợp lệ}}{15}{figure.caption.12}\protected@file@percent }
-\newlabel{fig:rtsp_state_machine}{{4}{15}{Máy trạng thái RTSP với các chuyển đổi hợp lệ}{figure.caption.12}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Các trạng thái RTSP và điều kiện chuyển đổi}}{15}{table.caption.13}\protected@file@percent }
-\newlabel{tab:rtsp_states}{{5}{15}{Các trạng thái RTSP và điều kiện chuyển đổi}{table.caption.13}{}}
-\newlabel{lst:state_validation}{{9}{15}{Validation state trước khi xử lý PLAY request}{lstlisting.9}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {9}{\ignorespaces Validation state trước khi xử lý PLAY request}}{15}{lstlisting.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.4}RTSP Sequence Diagram: luồng tương tác đầy đủ giữa Client và Server}{16}{subsubsection.3.3.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Sequence diagram của một phiên RTSP/RTP hoàn chỉnh}}{17}{figure.caption.14}\protected@file@percent }
-\newlabel{fig:rtsp_sequence}{{5}{17}{Sequence diagram của một phiên RTSP/RTP hoàn chỉnh}{figure.caption.14}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.5}Streaming loop: điều phối FPS, đọc frame, encode và gửi UDP}{18}{subsubsection.3.3.5}\protected@file@percent }
-\newlabel{lst:streaming_loop}{{10}{18}{Luồng streaming: đọc frame, encode RTP và gửi UDP}{lstlisting.10}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {10}{\ignorespaces Luồng streaming: đọc frame, encode RTP và gửi UDP}}{18}{lstlisting.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.6}Thuật toán Server Streaming Loop: điều phối chính xác theo FPS}{19}{subsubsection.3.3.6}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Flowchart thuật toán Server Streaming Loop}}{19}{figure.caption.15}\protected@file@percent }
-\newlabel{fig:streaming_loop_flowchart}{{6}{19}{Flowchart thuật toán Server Streaming Loop}{figure.caption.15}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.1}Bước 1 - Kiểm tra cờ streaming\_:}{19}{paragraph.3.3.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.2}Bước 2 - Timer.start():}{20}{paragraph.3.3.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.3}Bước 3 - Đọc frame từ VideoStream:}{20}{paragraph.3.3.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.4}Bước 4 - Encode frame thành RTP packets:}{20}{paragraph.3.3.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.5}Bước 5 - Gửi tất cả packets qua UDP:}{20}{paragraph.3.3.6.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.6}Bước 6 - Tăng timestamp:}{20}{paragraph.3.3.6.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.7}Bước 7 - Timer.wait():}{20}{paragraph.3.3.6.7}\protected@file@percent }
-\newlabel{lst:timer_wait_logic}{{11}{20}{Timer.wait() chỉ sleep phần thời gian còn lại của interval}{lstlisting.11}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {11}{\ignorespaces Timer.wait() chỉ sleep phần thời gian còn lại của interval}}{20}{lstlisting.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.7}Strategy pattern: SD vs HD và phân mảnh payload}{21}{subsubsection.3.3.7}\protected@file@percent }
-\newlabel{lst:hd_fragment}{{12}{21}{HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}{lstlisting.12}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {12}{\ignorespaces HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}}{21}{lstlisting.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.8}Giải thích chi tiết về RTP Fragmentation: tại sao cần và cách hoạt động}{22}{subsubsection.3.3.8}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Fragmentation một frame MJPEG thành nhiều RTP packets}}{22}{figure.caption.16}\protected@file@percent }
-\newlabel{fig:rtp_fragmentation}{{7}{22}{Fragmentation một frame MJPEG thành nhiều RTP packets}{figure.caption.16}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.9}VideoStream: thuật toán trích xuất frame MJPEG bằng marker JPEG}{22}{subsubsection.3.3.9}\protected@file@percent }
-\newlabel{lst:videostream_markers}{{13}{22}{Quét marker JPEG SOI/EOI để cắt frame trong \texttt {VideoStream::nextFrame()}}{lstlisting.13}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {13}{\ignorespaces Quét marker JPEG SOI/EOI để cắt frame trong \texttt  {VideoStream::nextFrame()}}}{22}{lstlisting.13}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Flowchart of MJPEG frame extraction algorithm}}{24}{figure.caption.17}\protected@file@percent }
-\newlabel{fig:mjpeg_extraction}{{8}{24}{Flowchart of MJPEG frame extraction algorithm}{figure.caption.17}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.1}Tại sao cần buffer tích lũy?}{24}{paragraph.3.3.9.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.2}Phát hiện SOI:}{24}{paragraph.3.3.9.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.3}Phát hiện EOI:}{25}{paragraph.3.3.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.4}Xử lý khi hết file:}{25}{paragraph.3.3.9.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.5}Tối ưu hóa bộ nhớ:}{25}{paragraph.3.3.9.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Client: RTSP điều khiển, nhận RTP, ghép frame và buffer/cache}{25}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.1}RTSPClient: phiên điều khiển và cơ chế ``restart''}{25}{subsubsection.3.4.1}\protected@file@percent }
-\newlabel{lst:client_play_restart}{{14}{25}{Client gửi PLAY kèm header Restart khi cần phát lại}{lstlisting.14}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {14}{\ignorespaces Client gửi PLAY kèm header Restart khi cần phát lại}}{25}{lstlisting.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.2}RTPReceiver: nhận UDP và thống kê mất gói}{25}{subsubsection.3.4.2}\protected@file@percent }
-\newlabel{lst:client_loss_stats}{{15}{25}{Tính packet loss dựa trên chênh lệch sequence}{lstlisting.15}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {15}{\ignorespaces Tính packet loss dựa trên chênh lệch sequence}}{25}{lstlisting.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.3}Giải thích chi tiết RTP Sequence Number Wrap-around}{26}{subsubsection.3.4.3}\protected@file@percent }
-\newlabel{lst:wraparound_problem}{{16}{26}{Wrap-around: so sánh trực tiếp bị sai}{lstlisting.16}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {16}{\ignorespaces Wrap-around: so sánh trực tiếp bị sai}}{26}{lstlisting.16}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Không gian sequence number 16-bit và wrap-around}}{26}{figure.caption.18}\protected@file@percent }
-\newlabel{fig:seq_wraparound}{{9}{26}{Không gian sequence number 16-bit và wrap-around}{figure.caption.18}{}}
-\newlabel{lst:seq_diff_correct}{{17}{27}{sequenceDifference function handles wrap-around correctly}{lstlisting.17}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {17}{\ignorespaces sequenceDifference function handles wrap-around correctly}}{27}{lstlisting.17}\protected@file@percent }
-\newlabel{lst:loss_with_wraparound}{{18}{27}{Calculate packet loss correctly with wrap-around}{lstlisting.18}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {18}{\ignorespaces Calculate packet loss correctly with wrap-around}}{27}{lstlisting.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.4}FrameReassembler: thuật toán ghép fragment phức tạp với xử lý out-of-order}{27}{subsubsection.3.4.4}\protected@file@percent }
-\newlabel{lst:reassemble_marker}{{19}{28}{Ghép frame khi gặp marker bit và đẩy vào buffer}{lstlisting.19}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {19}{\ignorespaces Ghép frame khi gặp marker bit và đẩy vào buffer}}{28}{lstlisting.19}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Flowchart of Frame Reassembly algorithm}}{29}{figure.caption.19}\protected@file@percent }
-\newlabel{fig:reassembly_flowchart}{{10}{29}{Flowchart of Frame Reassembly algorithm}{figure.caption.19}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.1}Bước 1 - Nhóm theo timestamp:}{29}{paragraph.3.4.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.2}Bước 2 - Kiểm tra marker bit:}{30}{paragraph.3.4.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.3}Bước 3 - Sắp xếp theo sequence number:}{30}{paragraph.3.4.4.3}\protected@file@percent }
-\newlabel{lst:sort_fragments}{{20}{30}{Sort fragments handling wrap-around}{lstlisting.20}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {20}{\ignorespaces Sort fragments handling wrap-around}}{30}{lstlisting.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.4}Bước 4 - Concatenate payloads:}{30}{paragraph.3.4.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.5}Bước 5 - Validation:}{30}{paragraph.3.4.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.6}Bước 6 - Push vào FrameBuffer và cleanup:}{30}{paragraph.3.4.4.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.5}FrameBuffer: buffer như một ``video cache'' thread-safe}{31}{subsubsection.3.4.5}\protected@file@percent }
-\newlabel{lst:framebuffer_push_pop}{{21}{31}{FrameBuffer đồng bộ bằng mutex + condition variable}{lstlisting.21}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {21}{\ignorespaces FrameBuffer đồng bộ bằng mutex + condition variable}}{31}{lstlisting.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.6}FrameBuffer: vai trò như video cache và cơ chế Producer-Consumer}{31}{subsubsection.3.4.6}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Mô hình Producer-Consumer của FrameBuffer}}{32}{figure.caption.20}\protected@file@percent }
-\newlabel{fig:framebuffer_cache}{{11}{32}{Mô hình Producer-Consumer của FrameBuffer}{figure.caption.20}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.7}ClientUI (Qt): prebuffer, adaptive playback và cơ chế chống jitter}{32}{subsubsection.3.4.7}\protected@file@percent }
-\newlabel{lst:ui_prebuffer}{{22}{32}{Prebuffer: chỉ phát khi buffer đủ \texttt {PREBUFFER\_FRAMES}}{lstlisting.22}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {22}{\ignorespaces Prebuffer: chỉ phát khi buffer đủ \texttt  {PREBUFFER\_FRAMES}}}{32}{lstlisting.22}\protected@file@percent }
-\newlabel{lst:ui_adaptive_timer}{{23}{32}{Adaptive timer: tăng interval khi buffer thấp để giảm giật}{lstlisting.23}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {23}{\ignorespaces Adaptive timer: tăng interval khi buffer thấp để giảm giật}}{32}{lstlisting.23}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces State flow of prebuffering mechanism}}{33}{figure.caption.21}\protected@file@percent }
-\newlabel{fig:prebuffer_states}{{12}{33}{State flow of prebuffering mechanism}{figure.caption.21}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Chiến lược adaptive interval dựa trên buffer size}}{34}{table.caption.22}\protected@file@percent }
-\newlabel{tab:adaptive_interval}{{6}{34}{Chiến lược adaptive interval dựa trên buffer size}{table.caption.22}{}}
-\newlabel{lst:adaptive_detailed}{{24}{34}{Adaptive interval logic in UI timer callback}{lstlisting.24}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {24}{\ignorespaces Adaptive interval logic in UI timer callback}}{34}{lstlisting.24}\protected@file@percent }
-\newlabel{lst:buffered_slider_paint}{{25}{35}{Vẽ vùng buffered trên timeline slider}{lstlisting.25}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {25}{\ignorespaces Vẽ vùng buffered trên timeline slider}}{35}{lstlisting.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Ghi nhận triển khai: logging, cấu hình và khả năng mở rộng}{35}{subsection.3.5}\protected@file@percent }
-\newlabel{lst:logger_singleton}{{26}{35}{Logger Singleton: log thread-safe và lọc theo mức}{lstlisting.26}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {26}{\ignorespaces Logger Singleton: log thread-safe và lọc theo mức}}{35}{lstlisting.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Implementation}{11}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Tổ chức codebase và quy ước build}{11}{subsection.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Phân rã module và phạm vi trách nhiệm}}{11}{table.caption.12}\protected@file@percent }
+\newlabel{tab:modules}{{4}{11}{Phân rã module và phạm vi trách nhiệm}{table.caption.12}{}}
+\newlabel{lst:cmake_root}{{1}{11}{CMake cấu hình Qt6 và chia subdirectory}{lstlisting.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces CMake cấu hình Qt6 và chia subdirectory}}{11}{lstlisting.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Common layer: chuẩn hóa giao tiếp và tiện ích dùng chung}{12}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.1}Socket wrapper và mô hình lỗi}{12}{subsubsection.3.2.1}\protected@file@percent }
+\newlabel{lst:socket_send_all}{{2}{12}{Vòng lặp \texttt {send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}{lstlisting.2}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces Vòng lặp \texttt  {send()} đảm bảo gửi đủ dữ liệu RTSP qua TCP}}{12}{lstlisting.2}\protected@file@percent }
+\newlabel{lst:rtp_receiver_timeout}{{3}{12}{Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}{lstlisting.3}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces Nhận RTP với timeout để kiểm tra cờ dừng định kỳ}}{12}{lstlisting.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.2}RTSPMessage: parse/build theo định dạng dòng}{13}{subsubsection.3.2.2}\protected@file@percent }
+\newlabel{lst:rtsp_build_request}{{4}{13}{Sinh request RTSP chuẩn CRLF và header CSeq}{lstlisting.4}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces Sinh request RTSP chuẩn CRLF và header CSeq}}{13}{lstlisting.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.3}RTPPacket và xử lý wrap-around sequence number}{13}{subsubsection.3.2.3}\protected@file@percent }
+\newlabel{lst:seq_diff}{{5}{14}{Tính chênh lệch sequence theo modulo để xử lý wrap-around}{lstlisting.5}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces Tính chênh lệch sequence theo modulo để xử lý wrap-around}}{14}{lstlisting.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.2.4}Builder pattern cho RTPPacket}{14}{subsubsection.3.2.4}\protected@file@percent }
+\newlabel{lst:rtp_builder_validate}{{6}{14}{Builder kiểm tra các trường bắt buộc trước khi build RTP packet}{lstlisting.6}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {6}{\ignorespaces Builder kiểm tra các trường bắt buộc trước khi build RTP packet}}{14}{lstlisting.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Server: RTSP state machine và luồng streaming RTP}{15}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.1}Mô hình đa luồng và quản lý session}{15}{subsubsection.3.3.1}\protected@file@percent }
+\newlabel{lst:server_accept}{{7}{15}{Tạo thread cho từng client trong \texttt {RTSPServer::run()}}{lstlisting.7}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {7}{\ignorespaces Tạo thread cho từng client trong \texttt  {RTSPServer::run()}}}{15}{lstlisting.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.2}ServerWorker: RTSP state machine và phân phối handler}{15}{subsubsection.3.3.2}\protected@file@percent }
+\newlabel{lst:server_dispatch}{{8}{15}{Dispatch lệnh RTSP theo method ở ServerWorker}{lstlisting.8}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {8}{\ignorespaces Dispatch lệnh RTSP theo method ở ServerWorker}}{15}{lstlisting.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.3}RTSP State Machine: mô hình chuyển đổi trạng thái nghiêm ngặt}{16}{subsubsection.3.3.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Máy trạng thái RTSP với các chuyển đổi hợp lệ}}{16}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:rtsp_state_machine}{{5}{16}{Máy trạng thái RTSP với các chuyển đổi hợp lệ}{figure.caption.13}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Các trạng thái RTSP và điều kiện chuyển đổi}}{16}{table.caption.14}\protected@file@percent }
+\newlabel{tab:rtsp_states}{{5}{16}{Các trạng thái RTSP và điều kiện chuyển đổi}{table.caption.14}{}}
+\newlabel{lst:state_validation}{{9}{16}{Validation state trước khi xử lý PLAY request}{lstlisting.9}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {9}{\ignorespaces Validation state trước khi xử lý PLAY request}}{16}{lstlisting.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.4}RTSP Sequence Diagram: luồng tương tác đầy đủ giữa Client và Server}{17}{subsubsection.3.3.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Sequence diagram của một phiên RTSP/RTP hoàn chỉnh}}{18}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:rtsp_sequence}{{6}{18}{Sequence diagram của một phiên RTSP/RTP hoàn chỉnh}{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.5}Streaming loop: điều phối FPS, đọc frame, encode và gửi UDP}{19}{subsubsection.3.3.5}\protected@file@percent }
+\newlabel{lst:streaming_loop}{{10}{19}{Luồng streaming: đọc frame, encode RTP và gửi UDP}{lstlisting.10}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {10}{\ignorespaces Luồng streaming: đọc frame, encode RTP và gửi UDP}}{19}{lstlisting.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.6}Thuật toán Server Streaming Loop: điều phối chính xác theo FPS}{20}{subsubsection.3.3.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Flowchart thuật toán Server Streaming Loop}}{20}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:streaming_loop_flowchart}{{7}{20}{Flowchart thuật toán Server Streaming Loop}{figure.caption.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.1}Bước 1 - Kiểm tra cờ streaming\_:}{20}{paragraph.3.3.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.2}Bước 2 - Timer.start():}{21}{paragraph.3.3.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.3}Bước 3 - Đọc frame từ VideoStream:}{21}{paragraph.3.3.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.4}Bước 4 - Encode frame thành RTP packets:}{21}{paragraph.3.3.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.5}Bước 5 - Gửi tất cả packets qua UDP:}{21}{paragraph.3.3.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.6}Bước 6 - Tăng timestamp:}{21}{paragraph.3.3.6.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.6.7}Bước 7 - Timer.wait():}{21}{paragraph.3.3.6.7}\protected@file@percent }
+\newlabel{lst:timer_wait_logic}{{11}{21}{Timer.wait() chỉ sleep phần thời gian còn lại của interval}{lstlisting.11}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {11}{\ignorespaces Timer.wait() chỉ sleep phần thời gian còn lại của interval}}{21}{lstlisting.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.7}Strategy pattern: SD vs HD và phân mảnh payload}{22}{subsubsection.3.3.7}\protected@file@percent }
+\newlabel{lst:hd_fragment}{{12}{22}{HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}{lstlisting.12}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {12}{\ignorespaces HD encoding: chia frame thành nhiều RTP packet và set marker cho fragment cuối}}{22}{lstlisting.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.8}Giải thích chi tiết về RTP Fragmentation: tại sao cần và cách hoạt động}{23}{subsubsection.3.3.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Fragmentation một frame MJPEG thành nhiều RTP packets}}{23}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:rtp_fragmentation}{{8}{23}{Fragmentation một frame MJPEG thành nhiều RTP packets}{figure.caption.17}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.3.9}VideoStream: thuật toán trích xuất frame MJPEG bằng marker JPEG}{23}{subsubsection.3.3.9}\protected@file@percent }
+\newlabel{lst:videostream_markers}{{13}{23}{Quét marker JPEG SOI/EOI để cắt frame trong \texttt {VideoStream::nextFrame()}}{lstlisting.13}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {13}{\ignorespaces Quét marker JPEG SOI/EOI để cắt frame trong \texttt  {VideoStream::nextFrame()}}}{23}{lstlisting.13}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Flowchart of MJPEG frame extraction algorithm}}{25}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:mjpeg_extraction}{{9}{25}{Flowchart of MJPEG frame extraction algorithm}{figure.caption.18}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.1}Tại sao cần buffer tích lũy?}{25}{paragraph.3.3.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.2}Phát hiện SOI:}{25}{paragraph.3.3.9.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.3}Phát hiện EOI:}{26}{paragraph.3.3.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.4}Xử lý khi hết file:}{26}{paragraph.3.3.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.3.9.5}Tối ưu hóa bộ nhớ:}{26}{paragraph.3.3.9.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Client: RTSP điều khiển, nhận RTP, ghép frame và buffer/cache}{26}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.1}RTSPClient: phiên điều khiển và cơ chế ``restart''}{26}{subsubsection.3.4.1}\protected@file@percent }
+\newlabel{lst:client_play_restart}{{14}{26}{Client gửi PLAY kèm header Restart khi cần phát lại}{lstlisting.14}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {14}{\ignorespaces Client gửi PLAY kèm header Restart khi cần phát lại}}{26}{lstlisting.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.2}RTPReceiver: nhận UDP và thống kê mất gói}{26}{subsubsection.3.4.2}\protected@file@percent }
+\newlabel{lst:client_loss_stats}{{15}{26}{Tính packet loss dựa trên chênh lệch sequence}{lstlisting.15}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {15}{\ignorespaces Tính packet loss dựa trên chênh lệch sequence}}{26}{lstlisting.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.3}Giải thích chi tiết RTP Sequence Number Wrap-around}{27}{subsubsection.3.4.3}\protected@file@percent }
+\newlabel{lst:wraparound_problem}{{16}{27}{Wrap-around: so sánh trực tiếp bị sai}{lstlisting.16}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {16}{\ignorespaces Wrap-around: so sánh trực tiếp bị sai}}{27}{lstlisting.16}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Không gian sequence number 16-bit và wrap-around}}{27}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:seq_wraparound}{{10}{27}{Không gian sequence number 16-bit và wrap-around}{figure.caption.19}{}}
+\newlabel{lst:seq_diff_correct}{{17}{28}{sequenceDifference function handles wrap-around correctly}{lstlisting.17}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {17}{\ignorespaces sequenceDifference function handles wrap-around correctly}}{28}{lstlisting.17}\protected@file@percent }
+\newlabel{lst:loss_with_wraparound}{{18}{28}{Calculate packet loss correctly with wrap-around}{lstlisting.18}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {18}{\ignorespaces Calculate packet loss correctly with wrap-around}}{28}{lstlisting.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.4}FrameReassembler: thuật toán ghép fragment phức tạp với xử lý out-of-order}{28}{subsubsection.3.4.4}\protected@file@percent }
+\newlabel{lst:reassemble_marker}{{19}{29}{Ghép frame khi gặp marker bit và đẩy vào buffer}{lstlisting.19}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {19}{\ignorespaces Ghép frame khi gặp marker bit và đẩy vào buffer}}{29}{lstlisting.19}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Flowchart of Frame Reassembly algorithm}}{30}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:reassembly_flowchart}{{11}{30}{Flowchart of Frame Reassembly algorithm}{figure.caption.20}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.1}Bước 1 - Nhóm theo timestamp:}{30}{paragraph.3.4.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.2}Bước 2 - Kiểm tra marker bit:}{31}{paragraph.3.4.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.3}Bước 3 - Sắp xếp theo sequence number:}{31}{paragraph.3.4.4.3}\protected@file@percent }
+\newlabel{lst:sort_fragments}{{20}{31}{Sort fragments handling wrap-around}{lstlisting.20}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {20}{\ignorespaces Sort fragments handling wrap-around}}{31}{lstlisting.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.4}Bước 4 - Concatenate payloads:}{31}{paragraph.3.4.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.5}Bước 5 - Validation:}{31}{paragraph.3.4.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {3.4.4.6}Bước 6 - Push vào FrameBuffer và cleanup:}{31}{paragraph.3.4.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.5}FrameBuffer: buffer như một ``video cache'' thread-safe}{32}{subsubsection.3.4.5}\protected@file@percent }
+\newlabel{lst:framebuffer_push_pop}{{21}{32}{FrameBuffer đồng bộ bằng mutex + condition variable}{lstlisting.21}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {21}{\ignorespaces FrameBuffer đồng bộ bằng mutex + condition variable}}{32}{lstlisting.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.6}FrameBuffer: vai trò như video cache và cơ chế Producer-Consumer}{32}{subsubsection.3.4.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Mô hình Producer-Consumer của FrameBuffer}}{33}{figure.caption.21}\protected@file@percent }
+\newlabel{fig:framebuffer_cache}{{12}{33}{Mô hình Producer-Consumer của FrameBuffer}{figure.caption.21}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.7}ClientUI (Qt): prebuffer, adaptive playback và cơ chế chống jitter}{33}{subsubsection.3.4.7}\protected@file@percent }
+\newlabel{lst:ui_prebuffer}{{22}{33}{Prebuffer: chỉ phát khi buffer đủ \texttt {PREBUFFER\_FRAMES}}{lstlisting.22}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {22}{\ignorespaces Prebuffer: chỉ phát khi buffer đủ \texttt  {PREBUFFER\_FRAMES}}}{33}{lstlisting.22}\protected@file@percent }
+\newlabel{lst:ui_adaptive_timer}{{23}{33}{Adaptive timer: tăng interval khi buffer thấp để giảm giật}{lstlisting.23}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {23}{\ignorespaces Adaptive timer: tăng interval khi buffer thấp để giảm giật}}{33}{lstlisting.23}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces State flow of prebuffering mechanism}}{34}{figure.caption.22}\protected@file@percent }
+\newlabel{fig:prebuffer_states}{{13}{34}{State flow of prebuffering mechanism}{figure.caption.22}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Chiến lược adaptive interval dựa trên buffer size}}{35}{table.caption.23}\protected@file@percent }
+\newlabel{tab:adaptive_interval}{{6}{35}{Chiến lược adaptive interval dựa trên buffer size}{table.caption.23}{}}
+\newlabel{lst:adaptive_detailed}{{24}{35}{Adaptive interval logic in UI timer callback}{lstlisting.24}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {24}{\ignorespaces Adaptive interval logic in UI timer callback}}{35}{lstlisting.24}\protected@file@percent }
+\newlabel{lst:buffered_slider_paint}{{25}{36}{Vẽ vùng buffered trên timeline slider}{lstlisting.25}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {25}{\ignorespaces Vẽ vùng buffered trên timeline slider}}{36}{lstlisting.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Ghi nhận triển khai: logging, cấu hình và khả năng mở rộng}{36}{subsection.3.5}\protected@file@percent }
+\newlabel{lst:logger_singleton}{{26}{36}{Logger Singleton: log thread-safe và lọc theo mức}{lstlisting.26}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {26}{\ignorespaces Logger Singleton: log thread-safe và lọc theo mức}}{36}{lstlisting.26}\protected@file@percent }
 \@setckpt{sections/implementation}{
-\setcounter{page}{37}
+\setcounter{page}{38}
 \setcounter{equation}{0}
 \setcounter{enumi}{5}
 \setcounter{enumii}{0}
@@ -137,7 +137,7 @@
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{12}
+\setcounter{figure}{13}
 \setcounter{table}{6}
 \setcounter{svg@param@lastpage}{0}
 \setcounter{svg@param@currpage}{-1}
@@ -148,7 +148,7 @@
 \setcounter{r@tfl@t}{0}
 \setcounter{FancyVerbLine}{0}
 \setcounter{linenumber}{1}
-\setcounter{LN@truepage}{39}
+\setcounter{LN@truepage}{40}
 \setcounter{FancyVerbWriteLine}{0}
 \setcounter{FancyVerbBufferLine}{0}
 \setcounter{FV@TrueTabGroupLevel}{0}
@@ -173,7 +173,7 @@
 \setcounter{section@level}{2}
 \setcounter{Item}{5}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{44}
+\setcounter{bookmark@seq@number}{45}
 \setcounter{algorithm}{0}
 \setcounter{ALG@line}{0}
 \setcounter{ALG@rem}{0}

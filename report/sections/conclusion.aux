@@ -2,28 +2,28 @@
 \providecommand{\transparent@use}[1]{}
 \providecommand\zref@newlabel[2]{}
 \providecommand\hyper@newdestlabel[2]{}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{43}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Tổng kết đóng góp kỹ thuật theo mã nguồn}{43}{subsection.7.1}\protected@file@percent }
-\newlabel{lst:control_data_plane}{{34}{43}{Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}{lstlisting.34}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {34}{\ignorespaces Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}}{43}{lstlisting.34}\protected@file@percent }
-\newlabel{lst:buffer_cache}{{35}{43}{Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}{lstlisting.35}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {35}{\ignorespaces Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}}{43}{lstlisting.35}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Hạn chế hiện tại và đề xuất cải tiến dựa trên bằng chứng mã nguồn}{43}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.1}(1) Tham số Timer ở Server chưa khớp mục tiêu 25 FPS.}{44}{paragraph.7.2.0.1}\protected@file@percent }
-\newlabel{lst:timer_mismatch}{{36}{44}{Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}{lstlisting.36}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {36}{\ignorespaces Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}}{44}{lstlisting.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.2}(2) Logic \texttt  {stop()} ở ServerWorker dùng \texttt  {static} flag có thể gây lỗi khi có nhiều worker.}{44}{paragraph.7.2.0.2}\protected@file@percent }
-\newlabel{lst:stop_static_bug}{{37}{44}{Static stop flag có thể làm dừng sai khi nhiều worker}{lstlisting.37}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {37}{\ignorespaces Static stop flag có thể làm dừng sai khi nhiều worker}}{44}{lstlisting.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.3}(3) Tính năng tua (seek) trên timeline hiện mới là thay đổi chỉ số hiển thị, chưa có RTSP Range.}{44}{paragraph.7.2.0.3}\protected@file@percent }
-\newlabel{lst:seek_ui_only}{{38}{44}{Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}{lstlisting.38}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {38}{\ignorespaces Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}}{44}{lstlisting.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.4}(4) Một số chi tiết định dạng RTSP request nên được chuẩn hóa tuyệt đối.}{45}{paragraph.7.2.0.4}\protected@file@percent }
-\newlabel{lst:teardown_spacing}{{39}{45}{Teardown request line thiếu khoảng trắng trước phiên bản}{lstlisting.39}{}}
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {39}{\ignorespaces Teardown request line thiếu khoảng trắng trước phiên bản}}{45}{lstlisting.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Kết luận}{45}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{44}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Tổng kết đóng góp kỹ thuật theo mã nguồn}{44}{subsection.7.1}\protected@file@percent }
+\newlabel{lst:control_data_plane}{{34}{44}{Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}{lstlisting.34}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {34}{\ignorespaces Tách biệt control plane và data plane: RTSP qua TCP, RTP qua UDP}}{44}{lstlisting.34}\protected@file@percent }
+\newlabel{lst:buffer_cache}{{35}{44}{Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}{lstlisting.35}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {35}{\ignorespaces Buffer như cache: producer (RTP) và consumer (UI) tách nhịp}}{44}{lstlisting.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Hạn chế hiện tại và đề xuất cải tiến dựa trên bằng chứng mã nguồn}{44}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.1}(1) Tham số Timer ở Server chưa khớp mục tiêu 25 FPS.}{45}{paragraph.7.2.0.1}\protected@file@percent }
+\newlabel{lst:timer_mismatch}{{36}{45}{Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}{lstlisting.36}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {36}{\ignorespaces Interval Timer ở ServerWorker đang đặt 10ms dù comment nói 40ms}}{45}{lstlisting.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.2}(2) Logic \texttt  {stop()} ở ServerWorker dùng \texttt  {static} flag có thể gây lỗi khi có nhiều worker.}{45}{paragraph.7.2.0.2}\protected@file@percent }
+\newlabel{lst:stop_static_bug}{{37}{45}{Static stop flag có thể làm dừng sai khi nhiều worker}{lstlisting.37}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {37}{\ignorespaces Static stop flag có thể làm dừng sai khi nhiều worker}}{45}{lstlisting.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.3}(3) Tính năng tua (seek) trên timeline hiện mới là thay đổi chỉ số hiển thị, chưa có RTSP Range.}{45}{paragraph.7.2.0.3}\protected@file@percent }
+\newlabel{lst:seek_ui_only}{{38}{45}{Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}{lstlisting.38}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {38}{\ignorespaces Seek hiện tại chỉ cập nhật currentFrame\_ ở UI}}{45}{lstlisting.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.2.0.4}(4) Một số chi tiết định dạng RTSP request nên được chuẩn hóa tuyệt đối.}{46}{paragraph.7.2.0.4}\protected@file@percent }
+\newlabel{lst:teardown_spacing}{{39}{46}{Teardown request line thiếu khoảng trắng trước phiên bản}{lstlisting.39}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {39}{\ignorespaces Teardown request line thiếu khoảng trắng trước phiên bản}}{46}{lstlisting.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Kết luận}{46}{subsection.7.3}\protected@file@percent }
 \@setckpt{sections/conclusion}{
-\setcounter{page}{46}
+\setcounter{page}{47}
 \setcounter{equation}{0}
 \setcounter{enumi}{5}
 \setcounter{enumii}{0}
@@ -37,7 +37,7 @@
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{14}
+\setcounter{figure}{15}
 \setcounter{table}{8}
 \setcounter{svg@param@lastpage}{0}
 \setcounter{svg@param@currpage}{-1}
@@ -48,7 +48,7 @@
 \setcounter{r@tfl@t}{0}
 \setcounter{FancyVerbLine}{0}
 \setcounter{linenumber}{1}
-\setcounter{LN@truepage}{48}
+\setcounter{LN@truepage}{49}
 \setcounter{FancyVerbWriteLine}{0}
 \setcounter{FancyVerbBufferLine}{0}
 \setcounter{FV@TrueTabGroupLevel}{0}
@@ -73,7 +73,7 @@
 \setcounter{section@level}{2}
 \setcounter{Item}{5}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{58}
+\setcounter{bookmark@seq@number}{59}
 \setcounter{algorithm}{0}
 \setcounter{ALG@line}{0}
 \setcounter{ALG@rem}{0}
